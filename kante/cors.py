@@ -62,3 +62,5 @@ class CorsMiddleware:
                 await send(event)
 
             await self.app(scope, receive, wrapped_send)
+
+        return None
