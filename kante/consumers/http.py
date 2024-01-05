@@ -41,6 +41,7 @@ class KanteHTTPConsumer(GraphQLHTTPConsumer):
                     consumer=request.consumer,
                     body=request.body,
                     user=user,
+                    auth=auth,
                     app=app,
                     scopes=scopes,
                     is_session=is_session,

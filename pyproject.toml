@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kante"
-version = "0.1.6"
+version = "0.1.7"
 description = ""
 authors = ["jhnnsrs <jhnnsrs@gmail.com>"]
 readme = "README.md"
@@ -9,7 +9,7 @@ packages = [{ include = "kante" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-authentikate = ">=0.1.10"
+authentikate = ">=0.1.11"
 strawberry-graphql = ">=0.212"
 koherent = ">=0.1.1"
 channels = "^4.0.0"

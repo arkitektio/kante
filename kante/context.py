@@ -2,7 +2,8 @@ from strawberry.channels import ChannelsConsumer, ChannelsRequest
 from strawberry.http.temporal_response import TemporalResponse
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
-from authentikate.models import App, User
+from authentikate.models import App, User 
+from authentikate.structs import Auth
 
 
 @dataclass
@@ -11,6 +12,7 @@ class EnhancendChannelsHTTPRequest(ChannelsRequest):
     app: Optional[App] = None
     scopes: Optional[list[str]] = None
     assignation_id: Optional[str] = None
+    auth: Optional[Auth] = None
     is_session: bool = False
 
     def has_scopes(self, scopes: list[str]) -> bool:
@@ -43,6 +45,7 @@ class EnhancendChannelsWSRequest:
     app: Optional[App] = None
     scopes: Optional[list[str]] = None
     assignation_id: Optional[str] = None
+    auth: Optional[Auth] = None
 
 
 @dataclass

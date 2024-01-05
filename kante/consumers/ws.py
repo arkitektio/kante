@@ -31,7 +31,7 @@ class KanteWsConsumer(GraphQLWSConsumer):
             assignation_id = None
             return ChannelsWSContext(
                 request=EnhancendChannelsWSRequest(
-                    user=user, app=app, assignation_id=assignation_id, scopes=scopes
+                    user=user, app=app, assignation_id=assignation_id, scopes=scopes, auth=auth,
                 ),
                 consumer=request,
                 connection_params=connection_params,

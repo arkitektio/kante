@@ -39,14 +39,14 @@ tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pyte
 
 [[package]]
 name = "authentikate"
-version = "0.1.10"
+version = "0.1.11"
 description = ""
 category = "main"
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "authentikate-0.1.10-py3-none-any.whl", hash = "sha256:0d011e79a4a5369b2926df2ee953c220f6d0d50f7ef1e3b666ca170a8bd3c59d"},
-    {file = "authentikate-0.1.10.tar.gz", hash = "sha256:a798ec552072f96505b68f9b35720dc05ea2f7608daccd7a3d222a2bf3643f68"},
+    {file = "authentikate-0.1.11-py3-none-any.whl", hash = "sha256:5c0dbd2150618fecba0aab4d928cd4835aed6cccf376f8ecb303b3114c3c245b"},
+    {file = "authentikate-0.1.11.tar.gz", hash = "sha256:8cbec68f2ed3acd9f5cb120976c1fdae1f7197a04a12ad0c0dbdcf560edbc058"},
 ]
 
 [package.dependencies]
@@ -1159,4 +1159,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "cd4e22f1b956213b53fa226b1a17c2293e9e0a187c4882608abf331988e8229a"
+content-hash = "e16f1a039353b9b3469d35acd0305863a398869603406cb0ffa8d23322f53e3a"
