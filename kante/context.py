@@ -2,7 +2,7 @@ from strawberry.channels import ChannelsConsumer, ChannelsRequest
 from strawberry.http.temporal_response import TemporalResponse
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
-from authentikate.models import App, User 
+from authentikate.models import App, User
 from authentikate.structs import Auth
 
 

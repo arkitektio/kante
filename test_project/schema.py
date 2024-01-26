@@ -5,7 +5,6 @@ from kante.directives import upper, replace, relation
 from koherent.strawberry.extension import KoherentExtension
 
 
-
 @strawberry.type
 class Me:
     id: str
@@ -13,7 +12,6 @@ class Me:
 
 @strawberry.type
 class Query:
-    
     @strawberry.field
     def me(self, info: Info, id: ID) -> Me:
         return Me(id=id)
@@ -21,11 +19,10 @@ class Query:
 
 @strawberry.type
 class Mutation:
-    
-    
     @strawberry.field
     def me(self, info: Info, id: ID) -> Me:
         return Me(id=id)
+
 
 schema = strawberry.Schema(
     query=Query,
