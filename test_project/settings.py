@@ -38,9 +38,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "guardian",
-    "simple_history",
-    "authentikate",
     "kante",
 ]
 
@@ -80,6 +77,12 @@ TEMPLATES = [
     },
 ]
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
+
 WSGI_APPLICATION = "test_project.wsgi.application"
 ASGI_APPLICATION = "test_project.asgi.application"
 
@@ -94,7 +97,8 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = "authentikate.User"
+MY_SCRIPT_NAME = ""
+
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 

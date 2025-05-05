@@ -1,59 +1,62 @@
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional, List, Type, TypeVar, Generic
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from kante.types import Info
+from pydantic import BaseModel, ValidationError
+from kante.context import WsContext
 import logging
-
+import uuid
 
 logger = logging.getLogger(__name__)
 
-
-class Channel:
-    """A GraphQL channel."""
+T = TypeVar("T", bound=BaseModel)
 
 
-    def __init__(self, name) -> None:
-        self.name = name
-        print("CHANNEL", name)
-        pass
+class Channel(Generic[T]):
+    """A typed GraphQL channel using Pydantic for serialization."""
 
-    def broadcast(self, message, groups=None):
-        """Broadcast a message to the given groups."""
-        if groups is None:
-            groups = ["default"]
+    def __init__(self, model: Type[T], name: Optional[str] = None) -> None:
+        self.model = model
+        self.name = name or model.__name__
+        self.id = str(uuid.uuid4())
 
-        channel = get_channel_layer()
+    def broadcast(self, message: T, groups: Optional[List[str]] = None) -> None:
+        """Broadcast a validated model instance to groups."""
+        groups = groups or ["default"]
+        channel_layer = get_channel_layer()
+        message_data = message.model_dump()
 
         for group in groups:
-            logger.debug(f"Sending message to group {group}")
-            async_to_sync(channel.group_send)(
+            logger.debug(f"[{self.name}] Broadcasting to group '{group}': {message_data}")
+            async_to_sync(channel_layer.group_send)(
                 group,
                 {
                     "type": f"channel.{self.name}",
-                    "message": message,
+                    "message": message_data,
                 },
             )
 
-    async def listen(self, info: Info, groups=None) -> AsyncGenerator[None, None]:
-        if groups is None:
-            groups = ["default"]
-        ws = info.context.consumer
-        channel_layer = ws.channel_layer
+    async def listen(self, context: WsContext, groups: Optional[List[str]] = None) -> AsyncGenerator[T, None]:
+        """Async generator that yields deserialized model messages."""
+        assert isinstance(context, WsContext), "Context must be a WsContext instance"
+        groups = groups or ["default"]
+        channel_layer = context.consumer.channel_layer
+        channel_name = context.consumer.channel_name
 
         for group in groups:
-            # Join room group
-            logger.debug(f"Joining group {group} for channel {ws.channel_name}")
-            print("GROUP", group , ws.channel_name)
-            await channel_layer.group_add(group, ws.channel_name)
+            logger.debug(f"[{self.name}] Subscribing '{channel_name}' to group '{group}'")
+            await channel_layer.group_add(group, channel_name)
 
-        async with ws.listen_to_channel(f"channel.{self.name}", groups=groups) as cm:
+        async with context.consumer.listen_to_channel(f"channel.{self.name}", groups=groups) as cm:
             async for message in cm:
-                print("MESSAGE", message)
-                yield message["message"]
+                raw = message.get("message")
+                try:
+                    yield self.model.model_validate(raw)
+                except ValidationError as e:
+                    logger.warning(f"[{self.name}] Invalid message received: {e}")
+                    continue  # Optionally re-raise or yield raw here
 
 
-def build_channel(name):
-    """Build a channel name for the given name."""
 
-    x = Channel(name)
-    return x.broadcast, x.listen
+def build_channel(model: Type[T], name: Optional[str] = None) -> Channel[T]:
+    """Build a channel with the given model and optional name."""
+    return Channel(model, name)

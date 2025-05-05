@@ -14,7 +14,7 @@ class CorsMiddleware:
 
     async def __call__(
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
-    ) -> Awaitable[None]:
+    ) -> None:
         if scope["type"] == "http" and scope["method"] == "OPTIONS":
             # preflight request. reply successfully:
             headers = [
@@ -36,7 +36,6 @@ class CorsMiddleware:
 
             async def wrapped_send(event: ASGISendEvent) -> None:
                 if event["type"] == "http.response.start":
-                    print("Original Event")
                     original_headers = event.get("headers") or []
                     access_control_allow_origin = b"*"
 
@@ -58,7 +57,6 @@ class CorsMiddleware:
                             ],
                         }
 
-                    print(event)
                 await send(event)
 
             await self.app(scope, receive, wrapped_send)

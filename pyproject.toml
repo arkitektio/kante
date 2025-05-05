@@ -1,57 +1,48 @@
-[tool.poetry]
+[project]
 name = "kante"
 version = "0.2.1"
 description = ""
-authors = ["jhnnsrs <jhnnsrs@gmail.com>"]
+authors = [{ name = "jhnnsrs", email = "jhnnsrs@gmail.com" }]
+requires-python = ">=3.11, <4.0"
 readme = "README.md"
 license = "MIT"
-packages = [{ include = "kante" }]
+dependencies = [
+    "django>5",
+    "strawberry-graphql-django>=0.59.0",
+    "strawberry-graphql[channels]>=0.266.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-authentikate = ">=0.1.11"
-strawberry-graphql = ">=0.212"
-koherent = ">=0.1.1"
-channels = "^4.0.0"
-pydantic = "<2.0"
 
 
 [tool.mypy]
-plugins = ["mypy_django_plugin.main"]
+exclude = ["venv/", "tests/", "examples/"]
+plugins = ["mypy_django_plugin.main","pydantic.mypy"]
 ignore_missing_imports = true
 strict = true
 
+
+[tool.hatch.build.targets.sdist]
+include = ["kante"]
+
+[tool.hatch.build.targets.wheel]
+include = ["kante"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.django-stubs]
 django_settings_module = "test_project.settings"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "test_project.settings"
+asyncio_default_fixture_loop_scope = "function"
 
-[tool.poetry.group.dev.dependencies]
-django = "^4.2.4"
-pytest-django = "^4.5.2"
-pytest = "^7.4.0"
-pytest-cov = "^4.1.0"
-mypy = "^1.4.1"
-strawberry-graphql-django = "^0.28.2"
-daphne = "^4.0.0"
-django-stubs = "^4.2.7"
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-# Enable the pycodestyle (`E`) and Pyflakes (`F`) rules by default.
-# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
-# McCabe complexity (`C901`) by default.
-select = ["E", "F"]
-ignore = []
+extend-select = ["ANN", "D1"]
 
-# Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["ALL"]
-unfixable = []
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -59,7 +50,6 @@ exclude = [
     ".direnv",
     ".eggs",
     ".git",
-    ".git-rewrite",
     ".hg",
     ".mypy_cache",
     ".nox",
@@ -70,7 +60,6 @@ exclude = [
     ".tox",
     ".venv",
     "__pypackages__",
-    "*/migrations/**",
     "_build",
     "buck-out",
     "build",
@@ -78,13 +67,32 @@ exclude = [
     "node_modules",
     "venv",
 ]
-per-file-ignores = {}
 
 # Same as Black.
-line-length = 88
+line-length = 100
 
-# Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+# Assume Python 3.12.
+target-version = "py312"
 
-# Assume Python 3.10.
-target-version = "py310"
+[tool.uv]
+dev-dependencies = [
+    "authentikate==0.5.0",
+    "daphne>=4.1.2",
+    "django-stubs>=5.2.0",
+    "httpx>=0.28.1",
+    "mypy>=1.15.0",
+    "pytest-asyncio>=0.26.0",
+    "pytest-cov>=6.1.1",
+    "pytest-django>=4.11.1",
+    "pytest>=8.3.5",
+    "python-semantic-release>=9.21.1",
+    "ruff>=0.11.8",
+]
+
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+upload_to_pypi = true
+branch = "main"
+build_command = "uv build"
+

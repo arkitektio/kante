@@ -1,59 +1,56 @@
 from strawberry.channels import ChannelsConsumer, ChannelsRequest
-from strawberry.http.temporal_response import TemporalResponse
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
-from authentikate.models import App, User
-from authentikate.structs import Auth
-
+from typing import Any, Dict, Literal, Optional
 
 @dataclass
-class EnhancendChannelsHTTPRequest(ChannelsRequest):
-    user: Optional[User] = None
-    app: Optional[App] = None
-    scopes: Optional[list[str]] = None
-    assignation_id: Optional[str] = None
-    auth: Optional[Auth] = None
-    is_session: bool = False
-
-    def has_scopes(self, scopes: list[str]) -> bool:
-        if self.is_session:
-            return True
-
-        if self.scopes is None:
-            return False
-
-        return all(scope in self.scopes for scope in scopes)
-
-
-@dataclass
-class ChannelsContext:
-    request: EnhancendChannelsHTTPRequest
-    response: TemporalResponse
-
-    @property
-    def session(self):
-        # Depends on Channels' SessionMiddleware / AuthMiddlewareStack
-        if "session" in self.request.consumer.scope:
-            return self.request.consumer.scope["session"]
-
-        return None
-
-
-@dataclass
-class EnhancendChannelsWSRequest:
-    user: Optional[User] = None
-    app: Optional[App] = None
-    scopes: Optional[list[str]] = None
-    assignation_id: Optional[str] = None
-    auth: Optional[Auth] = None
-
-
-@dataclass
-class ChannelsWSContext:
-    request: EnhancendChannelsWSRequest
+class WsContext:
+    _request: ChannelsRequest
+    type: Literal["ws"]
+    connection_params: Dict[str, Any]
     consumer: ChannelsConsumer
-    connection_params: Optional[Dict[str, Any]] = None
+    extensions: Optional[Dict[str, Any]] = None
+    
+    def get_extension(self, name: str) -> Optional[Any]:
+        if self.extensions is None:
+            return None
+        return self.extensions.get(name, None)
+    
+    
+    def set_extension(self, name: str, value: Any) -> None:
+        if self.extensions is None:
+            self.extensions = {}
+        self.extensions[name] = value
+    
+    
+               
 
-    @property
-    def ws(self) -> ChannelsConsumer:
-        return self.request
+
+@dataclass
+class HttpContext:
+    _request: ChannelsRequest
+    type: Literal["http", "ws"]
+    headers: Optional[Dict[str, Any]] = None
+    extensions: Optional[Dict[str, Any]] = None
+    
+    
+    def get_extension(self, name: str) -> Optional[Any]:
+        if self.extensions is None:
+            return None
+        return self.extensions.get(name, None)
+    
+    
+    def set_extension(self, name: str, value: Any) -> None:
+        if self.extensions is None:
+            self.extensions = {}
+        self.extensions[name] = value
+        
+        
+        
+Context = HttpContext | WsContext
+        
+        
+    
+    
+    
+    
+    
