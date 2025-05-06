@@ -559,9 +559,10 @@ wheels = [
 
 [[package]]
 name = "kante"
-version = "0.5.0"
+version = "0.6.0"
 source = { editable = "." }
 dependencies = [
+    { name = "channels" },
     { name = "django" },
     { name = "strawberry-graphql", extra = ["channels"] },
     { name = "strawberry-graphql-django" },
@@ -584,6 +585,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "channels", specifier = ">=4.2.2" },
     { name = "django", specifier = ">5" },
     { name = "strawberry-graphql", extras = ["channels"], specifier = ">=0.266.0" },
     { name = "strawberry-graphql-django", specifier = ">=0.59.0" },
