@@ -24,12 +24,13 @@ class CorsMiddleware:
                 (b"Access-Control-Max-Age", b"86400"),
             ]
             await send(
-                {"type": "http.response.start", "status": 200, "headers": headers}
+                {"type": "http.response.start", "status": 200, "headers": headers, "trailers": False}
             )
             await send(
                 {
                     "type": "http.response.body",
                     "body": b"",
+                    "more_body": False,
                 }
             )
         else:
@@ -42,7 +43,7 @@ class CorsMiddleware:
                     if access_control_allow_origin is not None:
                         # Construct a new event with new headers
                         event = {
-                            "type": "websockets.http.response.start",
+                            "type": "http.response.start",
                             "status": event["status"],
                             "headers": [
                                 p
@@ -50,11 +51,12 @@ class CorsMiddleware:
                                 if p[0] != b"access-control-allow-origin"
                             ]
                             + [
-                                [
+                                (
                                     b"access-control-allow-origin",
                                     access_control_allow_origin,
-                                ]
+                                ),
                             ],
+                            "trailers": event.get("trailers", False),
                         }
 
                 await send(event)

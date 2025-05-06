@@ -85,14 +85,14 @@ def router(
 
     
     
-    return ProtocolTypeRouter(
+    return CorsMiddleware(ProtocolTypeRouter(
         {
             "http": URLRouter(
                 http_urlpatterns
             ),
             "websocket": URLRouter(websocket_urlpatterns)
         }
-)
+    ))
 
 
 
