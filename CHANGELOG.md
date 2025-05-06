@@ -1,7 +1,15 @@
 # CHANGELOG
 
 
+## v0.7.0 (2025-05-06)
+
+
 ## v0.6.0 (2025-05-06)
+
+### Features
+
+- Update CORS middleware to include trailers and integrate with ProtocolTypeRouter
+  ([`dcaed4c`](https://github.com/arkitektio/kante/commit/dcaed4c3263bdb1a4f12ab7e79c785129a865c3d))
 
 
 ## v0.5.0 (2025-05-06)
