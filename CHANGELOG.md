@@ -1,7 +1,15 @@
 # CHANGELOG
 
 
+## v0.6.0 (2025-05-06)
+
+
 ## v0.5.0 (2025-05-06)
+
+### Features
+
+- Simplify ASGI router configuration and update version to 0.4.0
+  ([`01c194c`](https://github.com/arkitektio/kante/commit/01c194c63acdf942d862a10550d5b10643fd54de))
 
 
 ## v0.4.0 (2025-05-06)
