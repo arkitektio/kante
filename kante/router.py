@@ -36,7 +36,7 @@ from .path import re_dynamicpath
 def router(
     schema: Schema, 
     django_asgi_app: ASGIHandler | None = None, 
-    additional_websocket_urlpatterns: list[URLPattern] | None = None,  graphql_url_pattern: str  = "^graphql") -> ProtocolTypeRouter:
+    additional_websocket_urlpatterns: list[URLPattern] | None = None,  graphql_url_patterns: list[str] | None  = None) -> ProtocolTypeRouter:
    
     """
     ASGI router for the Kante framework.
@@ -59,6 +59,8 @@ def router(
     
     """
     
+    graphql_url_patterns = graphql_url_patterns or [r"^graphql", r"^graphql/"]
+    
     
     gql_http_consumer = CorsMiddleware(
         AuthMiddlewareStack(KanteHTTPConsumer.as_asgi(schema=schema))
@@ -67,7 +69,7 @@ def router(
     
     
     http_urlpatterns = [
-        re_dynamicpath(graphql_url_pattern, gql_http_consumer)
+        re_dynamicpath(graphql_url_pattern, gql_http_consumer) for graphql_url_pattern in graphql_url_patterns
     ]
     
     if django_asgi_app:
@@ -76,7 +78,7 @@ def router(
     
     
     websocket_urlpatterns = [
-        re_dynamicpath(graphql_url_pattern, gql_ws_consumer),
+        re_dynamicpath(graphql_url_pattern, gql_ws_consumer) for graphql_url_pattern in graphql_url_patterns
     ]
     
     
