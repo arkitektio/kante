@@ -1,7 +1,20 @@
 # CHANGELOG
 
 
+## v0.9.0 (2025-05-06)
+
+### Bug Fixes
+
+- Update WebSocket path in test_echo_consumer and bump version to 0.8.0
+  ([`54c39dc`](https://github.com/arkitektio/kante/commit/54c39dc7a609f4fe32c6a6442df8c82592fef6a6))
+
+
 ## v0.8.0 (2025-05-06)
+
+### Features
+
+- Implement EchoConsumer and add WebSocket testing
+  ([`7895403`](https://github.com/arkitektio/kante/commit/7895403bfdc089f4ba6eee5545acd85f8ba77d11))
 
 
 ## v0.7.0 (2025-05-06)
