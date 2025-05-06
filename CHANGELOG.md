@@ -1,12 +1,19 @@
 # CHANGELOG
 
 
+## v0.5.0 (2025-05-06)
+
+
 ## v0.4.0 (2025-05-06)
 
 ### Features
 
 - Introduce UniversalRequest for improved request handling in HTTP and WebSocket consumers
   ([`a88d96f`](https://github.com/arkitektio/kante/commit/a88d96f1ddfc6cb7f1ef77c3ec4ca080b35d3a46))
+
+- Update router to support multiple GraphQL URL patterns and add tests for HTTP and WebSocket
+  clients
+  ([`9c153bc`](https://github.com/arkitektio/kante/commit/9c153bc0677a0f0fd74e181fae5030071eec2931))
 
 
 ## v0.3.0 (2025-05-05)
