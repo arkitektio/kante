@@ -1,7 +1,15 @@
 # CHANGELOG
 
 
+## v0.8.0 (2025-05-06)
+
+
 ## v0.7.0 (2025-05-06)
+
+### Features
+
+- Update dependencies for channels and bump version to 0.6.0
+  ([`53dd8c9`](https://github.com/arkitektio/kante/commit/53dd8c9de12b4de2dc694a85c0334fe425da86b9))
 
 
 ## v0.6.0 (2025-05-06)
