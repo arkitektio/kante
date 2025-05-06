@@ -13,7 +13,7 @@ def dynamicpath(rel_path: str, view: Any, kwargs: dict[str, Any]| None  = None, 
 
 def re_dynamicpath(regex_path: str, view: Any, kwargs: dict[str, Any] | None = None, name: str | None = None) -> URLPattern:
     if settings.MY_SCRIPT_NAME:
-        return re_path(rf"^{settings.MY_SCRIPT_NAME.lstrip('/')}/", view, kwargs, name)
+        return re_path(rf"^{settings.MY_SCRIPT_NAME.lstrip('/')}/" + regex_path.lstrip("^"), view, kwargs, name)
     else:
         return re_path(regex_path, view, kwargs, name)
 
