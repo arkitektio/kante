@@ -62,9 +62,7 @@ def router(
     graphql_url_patterns = graphql_url_patterns or [r"^graphql", r"^graphql/"]
     
     
-    gql_http_consumer = CorsMiddleware(
-        AuthMiddlewareStack(KanteHTTPConsumer.as_asgi(schema=schema))
-    )
+    gql_http_consumer = KanteHTTPConsumer.as_asgi(schema=schema)
     gql_ws_consumer = KanteWsConsumer.as_asgi(schema=schema)
     
     
@@ -89,12 +87,10 @@ def router(
     
     return ProtocolTypeRouter(
         {
-            "http": AuthMiddlewareStack(URLRouter(
+            "http": URLRouter(
                 http_urlpatterns
-            )),
-            "websocket": AllowedHostsOriginValidator(
-                AuthMiddlewareStack(URLRouter(websocket_urlpatterns))
             ),
+            "websocket": URLRouter(websocket_urlpatterns)
         }
 )
 

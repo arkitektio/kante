@@ -79,7 +79,7 @@ class GraphQLHttpTestClient:
         })
 
         response_start = await communicator.receive_output(timeout=timeout)
-        assert response_start["type"] == "websockets.http.response.start", f"Unexpected type: {response_start}"
+        assert response_start["type"] == "http.response.start", f"Unexpected type: {response_start}"
         assert response_start["status"] == 200, f"Unexpected status: {response_start['status']}"
 
         response_body = await communicator.receive_output(timeout=timeout)
