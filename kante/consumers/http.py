@@ -4,6 +4,7 @@ from strawberry.http.temporal_response import TemporalResponse
 from kante.context import (
     Context,
     HttpContext,
+    UniversalRequest,
 )
 import logging
 
@@ -18,7 +19,7 @@ class KanteHTTPConsumer(GraphQLHTTPConsumer):
     ) -> Context:
         
         return HttpContext(
-            _request=request,
+            request=UniversalRequest(_extensions={}),
             headers=request.headers,
             type="http"
         )

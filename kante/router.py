@@ -13,9 +13,16 @@ It exposes the ASGI callable as a module-level variable named ``application``.
 For more information on this file, see
 https://docs.djangoproject.com/en/4.2/howto/deployment/asgi/
 """
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
-
+from channels.auth import AuthMiddlewareStack
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.security.websocket import AllowedHostsOriginValidator
+from django.urls import URLPattern, URLResolver, re_path
+from strawberry.channels.handlers.http_handler import GraphQLHTTPConsumer
+from strawberry.channels.handlers.ws_handler import GraphQLWSConsumer
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from django.urls import URLPattern
@@ -27,9 +34,10 @@ from .path import re_dynamicpath
 
 
 def router(
-    django_asgi_app: ASGIHandler, 
     schema: Schema, 
-    additional_websocket_urlpatterns: list[URLPattern] | None = None) -> ProtocolTypeRouter:
+    django_asgi_app: ASGIHandler | None = None, 
+    additional_websocket_urlpatterns: list[URLPattern] | None = None,  graphql_url_pattern: str  = "^graphql") -> ProtocolTypeRouter:
+   
     """
     ASGI router for the Kante framework.
     
@@ -57,9 +65,18 @@ def router(
     )
     gql_ws_consumer = KanteWsConsumer.as_asgi(schema=schema)
     
+    
+    http_urlpatterns = [
+        re_dynamicpath(graphql_url_pattern, gql_http_consumer)
+    ]
+    
+    if django_asgi_app:
+        http_urlpatterns.extend([re_dynamicpath(r"^", django_asgi_app)])
+    
+    
+    
     websocket_urlpatterns = [
-        re_dynamicpath(r"graphql", gql_ws_consumer),
-        re_dynamicpath(r"graphql/", gql_ws_consumer),
+        re_dynamicpath(graphql_url_pattern, gql_ws_consumer),
     ]
     
     
@@ -70,15 +87,10 @@ def router(
     
     return ProtocolTypeRouter(
         {
-            "http": URLRouter(
-                [
-                    re_dynamicpath("graphql", gql_http_consumer),
-                    re_dynamicpath(
-                        "", django_asgi_app
-                    ),  # This might be another endpoint in your app
-                ]
-            ),
-            "websocket": CorsMiddleware(
+            "http": AuthMiddlewareStack(URLRouter(
+                http_urlpatterns
+            )),
+            "websocket": AllowedHostsOriginValidator(
                 AuthMiddlewareStack(URLRouter(websocket_urlpatterns))
             ),
         }

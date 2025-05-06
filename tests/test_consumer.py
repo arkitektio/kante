@@ -27,7 +27,7 @@ async def test_typename_query() -> None:
     })
 
     response_start = await communicator.receive_output(timeout=5)
-    assert response_start["type"] == "http.response.start"
+    assert response_start["type"] == "websockets.http.response.start"
     assert response_start["status"] == 200
 
     response_body = await communicator.receive_output(timeout=5)

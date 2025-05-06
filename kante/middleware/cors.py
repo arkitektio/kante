@@ -42,7 +42,7 @@ class CorsMiddleware:
                     if access_control_allow_origin is not None:
                         # Construct a new event with new headers
                         event = {
-                            "type": "http.response.start",
+                            "type": "websockets.http.response.start",
                             "status": event["status"],
                             "headers": [
                                 p

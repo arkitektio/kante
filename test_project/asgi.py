@@ -21,6 +21,6 @@ from .schema import schema  # noqa
 
 
 application = router(
-    django_asgi_app,
     schema=schema,
+    django_asgi_app=django_asgi_app,
 )

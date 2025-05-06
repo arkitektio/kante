@@ -1,7 +1,8 @@
 from strawberry.channels import GraphQLWSConsumer
 from strawberry.channels import ChannelsRequest
 from typing import Any
-from kante.context import Context, WsContext
+from kante.context import Context, WsContext, UniversalRequest
+from strawberry.http.temporal_response import TemporalResponse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,10 +12,10 @@ class KanteWsConsumer(GraphQLWSConsumer):
     pass
 
     async def get_context(
-        self, request: ChannelsRequest, response: Any
+        self, request: ChannelsRequest, response: TemporalResponse
     ) -> Context:
         return WsContext(
-            _request=request,
+            request=UniversalRequest(_extensions={}),
             type="ws",
             connection_params={},
             consumer=self,
