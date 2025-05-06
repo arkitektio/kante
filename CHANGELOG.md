@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.4.0 (2025-05-06)
+
+### Features
+
+- Introduce UniversalRequest for improved request handling in HTTP and WebSocket consumers
+  ([`a88d96f`](https://github.com/arkitektio/kante/commit/a88d96f1ddfc6cb7f1ef77c3ec4ca080b35d3a46))
+
+
 ## v0.3.0 (2025-05-05)
 
 ### Bug Fixes
