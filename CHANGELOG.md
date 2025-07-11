@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.10.0 (2025-07-11)
+
+### Features
+
+- Add schema path option
+  ([`4431dd9`](https://github.com/arkitektio/kante/commit/4431dd9f152955b4399ee18e0b50807e629da822))
+
+
 ## v0.9.0 (2025-05-06)
 
 ### Bug Fixes
