@@ -86,3 +86,66 @@ class GraphQLHttpTestClient:
         assert response_body["type"] == "http.response.body", f"Unexpected type: {response_body}"
 
         return json.loads(response_body["body"])
+
+
+
+
+class HttpGetTestClient:
+    """
+    A minimal ASGI test client for performing raw HTTP GET requests using ApplicationCommunicator.
+
+    Example:
+        client = HttpGetTestClient(application)
+        response_text = await client.get("/schema")
+    """
+
+    def __init__(
+        self,
+        application: Any,
+        headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        self.application = application
+        self.headers = headers or {}
+
+    async def get(
+        self,
+        path: str,
+        accept: str = "text/plain",
+        timeout: int = 5
+    ) -> str:
+        """
+        Perform a GET request to the given path.
+
+        Args:
+            path: HTTP path to request (e.g., "/schema").
+            accept: MIME type for the Accept header.
+            timeout: Maximum time to wait for a response.
+
+        Returns:
+            Decoded response body as a string.
+
+        Raises:
+            AssertionError: If response type or status is unexpected.
+        """
+        header_list: List[Tuple[bytes, bytes]] = [(b"accept", accept.encode())]
+        for k, v in self.headers.items():
+            header_list.append((k.encode(), v.encode()))
+
+        communicator = ApplicationCommunicator(self.application, {
+            "type": "http",
+            "method": "GET",
+            "path": path,
+            "headers": header_list,
+            "body": b"",
+        })
+
+        await communicator.send_input({"type": "http.request", "body": b""})
+
+        response_start = await communicator.receive_output(timeout=timeout)
+        assert response_start["type"] == "http.response.start", f"Unexpected type: {response_start}"
+        assert response_start["status"] == 200, f"Unexpected status: {response_start['status']}"
+
+        response_body = await communicator.receive_output(timeout=timeout)
+        assert response_body["type"] == "http.response.body", f"Unexpected type: {response_body}"
+
+        return response_body["body"].decode()

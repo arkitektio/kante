@@ -30,13 +30,21 @@ from kante.consumers import KanteHTTPConsumer, KanteWsConsumer
 from kante.middleware.cors import CorsMiddleware
 from django.core.handlers.asgi import ASGIHandler
 from strawberry import Schema
-from .path import re_dynamicpath
+from .path import re_dynamicpath, dynamicpath
+from django.http import HttpResponse
+
+
 
 
 def router(
     schema: Schema, 
     django_asgi_app: ASGIHandler | None = None, 
-    additional_websocket_urlpatterns: list[URLPattern] | None = None,  graphql_url_patterns: list[str] | None  = None) -> ProtocolTypeRouter:
+    additional_websocket_urlpatterns: list[URLPattern] | None = None,  
+    graphql_url_patterns: list[str] | None  = None, 
+    schema_path: str | None = None
+    
+    
+    ) -> ProtocolTypeRouter:
    
     """
     ASGI router for the Kante framework.
@@ -66,9 +74,34 @@ def router(
     gql_ws_consumer = KanteWsConsumer.as_asgi(schema=schema)
     
     
+    async def graphql_schema(scope, receive, send):
+        """ASGI view to serve the GraphQL schema as plain text."""
+        await receive()
+        
+        schema_content = schema.as_str().encode('utf-8')
+        
+        await send({
+            'type': 'http.response.start',
+            'status': 200,
+            'headers': [
+                [b'content-type', b'text/plain'],
+                [b'content-length', str(len(schema_content)).encode()],
+            ],
+        })
+        
+        await send({
+            'type': 'http.response.body',
+            'body': schema_content,
+        })  
+        
+        
+    
     http_urlpatterns = [
         re_dynamicpath(graphql_url_pattern, gql_http_consumer) for graphql_url_pattern in graphql_url_patterns
     ]
+    
+    if schema_path:
+        http_urlpatterns.append(dynamicpath(schema_path, graphql_schema))
     
     if django_asgi_app:
         http_urlpatterns.extend([re_dynamicpath(r"^", django_asgi_app)])

@@ -28,5 +28,6 @@ additional_websocket_urlpatterns = [
 application = router(
     schema=schema,
     django_asgi_app=django_asgi_app,
+    schema_path="schema",
     additional_websocket_urlpatterns=additional_websocket_urlpatterns,
 )
