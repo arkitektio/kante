@@ -1,7 +1,15 @@
 # CHANGELOG
 
 
+## v0.10.1 (2025-07-11)
+
+
 ## v0.10.0 (2025-07-11)
+
+### Bug Fixes
+
+- Add fix for double setting bug in strawberry graphql
+  ([`2ea7272`](https://github.com/arkitektio/kante/commit/2ea7272af6ce3c6b93170efd7eb0119332557451))
 
 ### Features
 
