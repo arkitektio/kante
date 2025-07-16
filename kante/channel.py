@@ -3,12 +3,21 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from pydantic import BaseModel, ValidationError
 from kante.context import WsContext
+from strawberry.channels.handlers.base import ChannelsLayer
 import logging
 import uuid
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
+
+
+def get_real_channel_layer() -> ChannelsLayer:
+    """Get the real channel layer, not the mock one."""
+    channel_layer = get_channel_layer() # as
+    if not channel_layer:
+        raise RuntimeError("Channel layer is not available in the context")
+    return channel_layer
 
 
 class Channel(Generic[T]):
@@ -22,7 +31,7 @@ class Channel(Generic[T]):
     def broadcast(self, message: T, groups: Optional[List[str]] = None) -> None:
         """Broadcast a validated model instance to groups."""
         groups = groups or ["default"]
-        channel_layer = get_channel_layer()
+        channel_layer = get_real_channel_layer()
         message_data = message.model_dump()
 
         for group in groups:
@@ -41,6 +50,8 @@ class Channel(Generic[T]):
         groups = groups or ["default"]
         channel_layer = context.consumer.channel_layer
         channel_name = context.consumer.channel_name
+        if not channel_layer:
+            raise RuntimeError("Channel layer is not available in the context")
 
         for group in groups:
             logger.debug(f"[{self.name}] Subscribing '{channel_name}' to group '{group}'")

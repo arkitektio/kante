@@ -13,7 +13,13 @@ class User(Protocol):
 
 
 class Client(Protocol):
+    id: str
     client_id: str
+    
+    
+class Organization(Protocol):
+    id: int
+    slug: str
 
 
 @dataclass
@@ -21,6 +27,7 @@ class UniversalRequest:
     _extensions: Dict[str, Any]
     _client: Optional[Client] = None
     _user: Optional[User] = None
+    _organization: Optional[Organization] = None
 
     @property
     def user(self) -> User:
@@ -44,6 +51,10 @@ class UniversalRequest:
     def set_user(self, user: User) -> None:
         """Set an extension value in the request."""
         self._user = user
+        
+    def set_organization(self, organization: Organization) -> None:
+        """Set an organization in the request."""
+        self._organization = organization
 
     def set_client(self, client: Client) -> None:
         """Set an extension value in the request."""
