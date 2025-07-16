@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.12.1 (2025-07-16)
+
+### Bug Fixes
+
+- Organization inside request
+  ([`d431454`](https://github.com/arkitektio/kante/commit/d431454e28fb2c48fbf683d2a2545388bdd4218e))
+
+
 ## v0.12.0 (2025-07-16)
 
 ### Features
