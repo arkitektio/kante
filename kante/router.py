@@ -15,23 +15,15 @@ https://docs.djangoproject.com/en/4.2/howto/deployment/asgi/
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 
-from channels.auth import AuthMiddlewareStack
-from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.security.websocket import AllowedHostsOriginValidator
-from django.urls import URLPattern, URLResolver, re_path
-from strawberry.channels.handlers.http_handler import GraphQLHTTPConsumer
-from strawberry.channels.handlers.ws_handler import GraphQLWSConsumer
-from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.auth import AuthMiddlewareStack
+from django.urls import URLPattern
+from channels.routing import ProtocolTypeRouter, URLRouter # type: ignore
 from django.urls import URLPattern
 from kante.consumers import KanteHTTPConsumer, KanteWsConsumer
 from kante.middleware.cors import CorsMiddleware
 from django.core.handlers.asgi import ASGIHandler
 from strawberry import Schema
 from .path import re_dynamicpath, dynamicpath
-from django.http import HttpResponse
 
 
 
@@ -70,11 +62,11 @@ def router(
     graphql_url_patterns = graphql_url_patterns or [r"^graphql", r"^graphql/"]
     
     
-    gql_http_consumer = KanteHTTPConsumer.as_asgi(schema=schema)
-    gql_ws_consumer = KanteWsConsumer.as_asgi(schema=schema)
+    gql_http_consumer = KanteHTTPConsumer.as_asgi(schema=schema) # type: ignore
+    gql_ws_consumer = KanteWsConsumer.as_asgi(schema=schema) # type: ignore
     
     
-    async def graphql_schema(scope, receive, send):
+    async def graphql_schema(scope, receive, send): # type: ignore
         """ASGI view to serve the GraphQL schema as plain text."""
         await receive()
         

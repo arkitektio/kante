@@ -1,9 +1,9 @@
 from typing import AsyncGenerator, Optional, List, Type, TypeVar, Generic
-from channels.layers import get_channel_layer
+from channels.layers import get_channel_layer # type: ignore
 from asgiref.sync import async_to_sync
 from pydantic import BaseModel, ValidationError
 from kante.context import WsContext
-from strawberry.channels.handlers.base import ChannelsLayer
+from kante.types import ChannelsLayer
 import logging
 import uuid
 
@@ -14,10 +14,10 @@ T = TypeVar("T", bound=BaseModel)
 
 def get_real_channel_layer() -> ChannelsLayer:
     """Get the real channel layer, not the mock one."""
-    channel_layer = get_channel_layer() # as
+    channel_layer = get_channel_layer() # type: ignore
     if not channel_layer:
         raise RuntimeError("Channel layer is not available in the context")
-    return channel_layer
+    return channel_layer # type: ignore # noqa: E501
 
 
 class Channel(Generic[T]):

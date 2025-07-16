@@ -9,7 +9,7 @@ class User(Protocol):
 
     def is_anonymous(self) -> bool:
         """Check if the user is anonymous."""
-        return self.id is None
+        ...
 
 
 class Client(Protocol):
