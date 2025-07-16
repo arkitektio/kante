@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.11.0 (2025-07-16)
+
+### Features
+
+- Add organization
+  ([`ec35f55`](https://github.com/arkitektio/kante/commit/ec35f55e7ffb9571a2ac1de5a96ed60640b55dda))
+
+
 ## v0.10.1 (2025-07-11)
 
 
