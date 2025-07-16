@@ -1,4 +1,4 @@
-from strawberry.channels import ChannelsConsumer, ChannelsRequest
+from strawberry.channels import ChannelsConsumer
 from dataclasses import dataclass
 from typing import Any, Dict, Literal, Mapping, Optional, Protocol
 
@@ -47,6 +47,15 @@ class UniversalRequest:
             )
 
         return self._client
+    
+    @property
+    def organization(self) -> Organization:
+        if self._organization is None:
+            raise ValueError(
+                "Organization is not set in the request.  Do you have a strawberry extension setting this?"
+            )
+
+        return self._organization
 
     def set_user(self, user: User) -> None:
         """Set an extension value in the request."""
