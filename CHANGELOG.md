@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.12.0 (2025-07-16)
+
+### Features
+
+- Update channel layer handling and add type hints
+  ([`36cb81e`](https://github.com/arkitektio/kante/commit/36cb81e14e264f24472cf3408f18e0a000728469))
+
+- Added type hints to channel layer functions in `channel.py`, `path.py`, and `router.py`. - Updated
+  `context.py` to use ellipsis for the `is_anonymous` method. - Enhanced `ChannelsLayer` protocol in
+  `types.py` with detailed method specifications. - Incremented version to 0.11.0 in `uv.lock`. -
+  Created `py.typed` file for type checking support.
+
+
 ## v0.11.0 (2025-07-16)
 
 ### Features
