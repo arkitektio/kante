@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.14.0 (2025-08-07)
+
+### Features
+
+- Add mutation
+  ([`dcb0254`](https://github.com/arkitektio/kante/commit/dcb0254a496dc5eeb0e8d0eb6098306252e93102))
+
+
 ## v0.13.0 (2025-08-07)
 
 ### Features
