@@ -1,6 +1,5 @@
 from strawberry.channels import GraphQLWSConsumer
 from strawberry.channels import ChannelsRequest
-from typing import Any
 from kante.context import Context, WsContext, UniversalRequest
 from strawberry.http.temporal_response import TemporalResponse
 import logging

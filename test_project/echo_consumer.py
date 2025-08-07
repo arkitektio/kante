@@ -1,6 +1,5 @@
 # consumers.py
 import json
-from typing import Any
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 class EchoConsumer(AsyncWebsocketConsumer):

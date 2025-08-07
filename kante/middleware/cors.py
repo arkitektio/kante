@@ -5,11 +5,10 @@ from asgiref.typing import (
     ASGISendCallable,
     ASGISendEvent,
 )
-from typing import Awaitable
 
 
 class CorsMiddleware:
-    def __init__(self, app: ASGIApplication):
+    def __init__(self, app: ASGIApplication) -> None:
         self.app = app
 
     async def __call__(

@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from django.urls import URLPattern
 from channels.routing import ProtocolTypeRouter, URLRouter # type: ignore
-from django.urls import URLPattern
 from kante.consumers import KanteHTTPConsumer, KanteWsConsumer
 from kante.middleware.cors import CorsMiddleware
 from django.core.handlers.asgi import ASGIHandler
@@ -66,7 +65,7 @@ def router(
     gql_ws_consumer = KanteWsConsumer.as_asgi(schema=schema) # type: ignore
     
     
-    async def graphql_schema(scope, receive, send): # type: ignore
+    async def graphql_schema(scope, receive, send) -> None: # type: ignore
         """ASGI view to serve the GraphQL schema as plain text."""
         await receive()
         

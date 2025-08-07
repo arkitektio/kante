@@ -8,10 +8,6 @@ from test_project.asgi import application
 @pytest.mark.asyncio
 async def test_graphql_http_with_slash()-> None:
     """ Test that the GraphQL subscription works with connection parameters."""
-    payload = {
-        "authToken": "test",
-        "clientName": "pytest-client"
-    }
 
     
     
