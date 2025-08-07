@@ -19,7 +19,7 @@ from .type import (
 from .type import Info
 from .schema import Schema
 
-
+""" All public API of kante. """
 __all__ = [
     "type",
     "field",
