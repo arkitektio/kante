@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.13.0 (2025-08-07)
+
+### Features
+
+- Add inherit federation support
+  ([`f23f3fd`](https://github.com/arkitektio/kante/commit/f23f3fd17b85cd1c9cd30c8f7af8956ece91531b))
+
+
 ## v0.12.1 (2025-07-16)
 
 ### Bug Fixes
