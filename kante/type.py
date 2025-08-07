@@ -32,6 +32,9 @@ filter_type = filters.filter_type
 filter = filters.filter
 filter_field = sfilter_field
 
+django_mutation = strawberry_django.mutation
+mutation = strawberry.mutation
+
 django_input = sdjango_input
 input = strawberry.input
 
