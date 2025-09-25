@@ -20,6 +20,9 @@ class Client(Protocol):
 class Organization(Protocol):
     id: int
     slug: str
+    
+class Membership(Protocol):
+    id: int
 
 
 @dataclass
@@ -38,6 +41,18 @@ class UniversalRequest:
             )
 
         return self._user
+    
+    
+    @property
+    def membership(self) -> Membership:
+        """Get the user associated with the request."""
+        if self._user is None:
+            raise ValueError(
+                "User is not set in the request. Do you have a strawberry extension setting this?"
+            )
+
+        return self._user
+
 
     @property
     def client(self) -> Client:
@@ -64,7 +79,10 @@ class UniversalRequest:
     def set_organization(self, organization: Organization) -> None:
         """Set an organization in the request."""
         self._organization = organization
-
+        
+    def set_membership(self, membership: Membership) -> None:
+        self._membership = membership
+        
     def set_client(self, client: Client) -> None:
         """Set an extension value in the request."""
         self._client = client
