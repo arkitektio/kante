@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.16.0 (2025-09-25)
+
+### Features
+
+- Fix wrong membership
+  ([`789384d`](https://github.com/arkitektio/kante/commit/789384d512df7183b828df1a554409fd22933ce4))
+
+
 ## v0.15.0 (2025-09-25)
 
 ### Features
