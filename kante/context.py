@@ -46,12 +46,12 @@ class UniversalRequest:
     @property
     def membership(self) -> Membership:
         """Get the user associated with the request."""
-        if self._user is None:
+        if self._membership is None:
             raise ValueError(
-                "User is not set in the request. Do you have a strawberry extension setting this?"
+                "Membserhip is not set in the request. Do you have a strawberry extension setting this?"
             )
 
-        return self._user
+        return self._membership
 
 
     @property
