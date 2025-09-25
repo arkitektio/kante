@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.15.0 (2025-09-25)
+
+### Features
+
+- Add membership feature
+  ([`e3a0b5e`](https://github.com/arkitektio/kante/commit/e3a0b5e3fa8457a44bd24b31e480ba43c88720a6))
+
+
 ## v0.14.0 (2025-08-07)
 
 ### Features
