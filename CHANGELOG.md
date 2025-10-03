@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.16.1 (2025-10-03)
+
+### Bug Fixes
+
+- Add membership property
+  ([`3394aff`](https://github.com/arkitektio/kante/commit/3394affef831220148b34943fb6410e12a73d74b))
+
+
 ## v0.16.0 (2025-09-25)
 
 ### Features
