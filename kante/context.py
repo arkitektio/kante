@@ -31,6 +31,7 @@ class UniversalRequest:
     _client: Optional[Client] = None
     _user: Optional[User] = None
     _organization: Optional[Organization] = None
+    _membership: Optional[Membership] = None
 
     @property
     def user(self) -> User:
