@@ -6,6 +6,7 @@ from .type import (
     django_field,
     django_interface,
     django_mutation,  # type: ignore[assignment]
+    pydantic_input,
     mutation,
     pydantic_type,
     subscription,
@@ -37,6 +38,7 @@ __all__ = [
     "filter_type",
     "filter",
     "filter_field",
+    "pydantic_input",
     "Info",
     "Schema",
 ]

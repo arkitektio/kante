@@ -45,6 +45,7 @@ subscription = strawberry.subscription
 type = strawberry.type
 field = strawberry.field
 pydantic_type = pydantic.type
+pydantic_input = pydantic.input
 django_field = strawberry_django.field
 
 T = TypeVar("T", bound=object)
@@ -76,7 +77,7 @@ def django_type(
     disable_optimization: bool = False,
     fields: Optional[Union[list[str], Literal["__all__"]]] = None,
     exclude: Optional[list[str]] = None,
-    federated: bool = False,
+    federated: bool = True,
 ) -> Callable[
     [Type[T]],
     Type[T],
