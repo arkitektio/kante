@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.1.0 (2026-02-13)
+
+### Features
+
+- With updatet strabwery-grahql-django
+  ([`8c5e8af`](https://github.com/arkitektio/kante/commit/8c5e8afe7faebe91020844a87de5e46557d08151))
+
+
 ## v1.0.0 (2026-02-13)
 
 ### Features
