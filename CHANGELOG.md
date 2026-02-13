@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.0.0 (2026-02-13)
+
+### Features
+
+- Updated dependencies
+  ([`12d2ed7`](https://github.com/arkitektio/kante/commit/12d2ed78c8002fdf91d6994141344c6c8abd97f0))
+
+
 ## v0.16.1 (2025-10-03)
 
 ### Bug Fixes
