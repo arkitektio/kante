@@ -9,7 +9,7 @@ license = "MIT"
 dependencies = [
     "django>5",
     "channels>=4.2.2",
-    "strawberry-graphql-django>=0.59.0",
+    "strawberry-graphql-django>=0.75",
     "strawberry-graphql[channels]==0.291.3",
 ]
 
