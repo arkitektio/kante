@@ -7,10 +7,10 @@ requires-python = ">=3.11, <4.0"
 readme = "README.md"
 license = "MIT"
 dependencies = [
-    "django>5",
-    "channels>=4.2.2",
-    "strawberry-graphql-django>=0.75",
-    "strawberry-graphql[channels]==0.291.3",
+    "django>=5.2.12",
+    "channels>=4.3.2",
+    "strawberry-graphql-django>=0.82",
+    "strawberry-graphql[channels]>=0.312",
 ]
 
 
