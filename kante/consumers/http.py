@@ -20,6 +20,7 @@ class KanteHTTPConsumer(GraphQLHTTPConsumer):
         
         return HttpContext(
             request=UniversalRequest(_extensions={}),
+            response=response,
             headers=request.headers,
             type="http"
         )

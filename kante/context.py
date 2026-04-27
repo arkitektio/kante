@@ -1,6 +1,7 @@
 from strawberry.channels import ChannelsConsumer
 from dataclasses import dataclass
 from typing import Any, Dict, Literal, Mapping, Optional, Protocol
+from strawberry.http.temporal_response import TemporalResponse
 
 
 class User(Protocol):
@@ -113,8 +114,11 @@ class WsContext:
 @dataclass
 class HttpContext:
     request: UniversalRequest
+    response: TemporalResponse
     headers: Mapping[str, str]
     type: Literal["http"] = "http"
+    
+    
 
 
 Context = HttpContext | WsContext

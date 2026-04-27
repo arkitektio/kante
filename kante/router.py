@@ -21,12 +21,14 @@ from django.urls import URLPattern
 from channels.routing import ProtocolTypeRouter, URLRouter # type: ignore
 from kante.consumers import KanteHTTPConsumer, KanteWsConsumer
 from kante.middleware.cors import CorsMiddleware
+
 from django.core.handlers.asgi import ASGIHandler
 from strawberry import Schema
 from .path import re_dynamicpath, dynamicpath
 from asgiref.typing import (
     ASGI3Application
 )
+from strawberry_django.routers import AuthGraphQLProtocolTypeRouter
 
 
 def router(
