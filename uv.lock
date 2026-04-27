@@ -419,14 +419,14 @@ wheels = [
 
 [[package]]
 name = "cross-web"
-version = "0.5.0"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6e/67/4098b8c3a27b01f0120b2d362ac4b43f2c70fa4dafaece88793756789c32/cross_web-0.5.0.tar.gz", hash = "sha256:ff122cc5a68db5ce010cf00e78705177026a2bfedcd2c36e133cf8ba53e172d7", size = 330828, upload-time = "2026-04-13T12:45:44.068Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a4/58/e688e99d1493c565d1587e64b499268d0a3129ae59f4efe440aac395f803/cross_web-0.4.1.tar.gz", hash = "sha256:0466295028dcae98c9ab3d18757f90b0e74fac2ff90efbe87e74657546d9993d", size = 157385, upload-time = "2026-01-09T18:17:41.534Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/33/c8212606805ad0d5a3feb742aeb7f336cae4a3893f8287644725e0b2d0d9/cross_web-0.5.0-py3-none-any.whl", hash = "sha256:c9cc4daf366736d3ae5e619ad5c64907144ef3d705bd4d32544708671bbbc952", size = 24314, upload-time = "2026-04-13T12:45:45.289Z" },
+    { url = "https://files.pythonhosted.org/packages/67/49/92b46b6e65f09b717a66c4e5a9bc47a45ebc83dd0e0ed126f8258363479d/cross_web-0.4.1-py3-none-any.whl", hash = "sha256:41b07c3a38253c517ec0603c1a366353aff77538946092b0f9a2235033f192c2", size = 14320, upload-time = "2026-01-09T18:17:40.325Z" },
 ]
 
 [[package]]
@@ -706,7 +706,7 @@ wheels = [
 
 [[package]]
 name = "kante"
-version = "1.1.2"
+version = "1.1.3"
 source = { editable = "." }
 dependencies = [
     { name = "channels" },
@@ -736,10 +736,10 @@ dev = [
 requires-dist = [
     { name = "channels", specifier = ">=4.3.2" },
     { name = "channels-redis", specifier = ">=4.3.0" },
-    { name = "cross-web", specifier = ">=0.5,<0.6" },
+    { name = "cross-web", specifier = "==0.4.1" },
     { name = "django", specifier = ">=6" },
-    { name = "strawberry-graphql", extras = ["channels"], specifier = ">=0.312" },
-    { name = "strawberry-graphql-django", specifier = ">=0.82" },
+    { name = "strawberry-graphql", extras = ["channels"], specifier = "==0.312" },
+    { name = "strawberry-graphql-django", specifier = "==0.82" },
 ]
 
 [package.metadata.requires-dev]
