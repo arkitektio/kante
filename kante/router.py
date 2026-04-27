@@ -14,6 +14,7 @@ For more information on this file, see
 https://docs.djangoproject.com/en/4.2/howto/deployment/asgi/
 """
 from __future__ import annotations
+from typing import Any, cast
 
 
 from django.urls import URLPattern
@@ -23,8 +24,9 @@ from kante.middleware.cors import CorsMiddleware
 from django.core.handlers.asgi import ASGIHandler
 from strawberry import Schema
 from .path import re_dynamicpath, dynamicpath
-
-
+from asgiref.typing import (
+    ASGI3Application
+)
 
 
 def router(
@@ -35,7 +37,7 @@ def router(
     schema_path: str | None = None
     
     
-    ) -> ProtocolTypeRouter:
+    ) -> ASGI3Application:
    
     """
     ASGI router for the Kante framework.
@@ -85,7 +87,6 @@ def router(
             'body': schema_content,
         })  
         
-        
     
     http_urlpatterns = [
         re_dynamicpath(graphql_url_pattern, gql_http_consumer) for graphql_url_pattern in graphql_url_patterns
@@ -112,9 +113,9 @@ def router(
     return CorsMiddleware(ProtocolTypeRouter(
         {
             "http": URLRouter(
-                http_urlpatterns
+                cast(list[Any], http_urlpatterns)
             ),
-            "websocket": URLRouter(websocket_urlpatterns)
+            "websocket": URLRouter(cast(list[Any],websocket_urlpatterns))
         }
     ))
 

@@ -1,65 +1,69 @@
 from asgiref.typing import (
-    ASGIApplication,
+    ASGI3Application,
     Scope,
     ASGIReceiveCallable,
     ASGISendCallable,
     ASGISendEvent,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
 )
 
-
 class CorsMiddleware:
-    def __init__(self, app: ASGIApplication) -> None:
+    def __init__(self, app: ASGI3Application) -> None:
         self.app = app
 
     async def __call__(
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
+        # 1. Handle Preflight (OPTIONS) requests
         if scope["type"] == "http" and scope["method"] == "OPTIONS":
-            # preflight request. reply successfully:
             headers = [
-                (b"Access-Control-Allow-Origin", b"*"),
-                (b"Access-Control-Allow-Headers", b"Authorization, Content-Type"),
-                (b"Access-Control-Allow-Methods", b"GET, POST, PUT, DELETE, OPTIONS"),
-                (b"Access-Control-Max-Age", b"86400"),
+                (b"access-control-allow-origin", b"*"),
+                (b"access-control-allow-headers", b"Authorization, Content-Type"),
+                (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS"),
+                (b"access-control-max-age", b"86400"),
             ]
-            await send(
-                {"type": "http.response.start", "status": 200, "headers": headers, "trailers": False}
-            )
-            await send(
-                {
-                    "type": "http.response.body",
-                    "body": b"",
-                    "more_body": False,
-                }
-            )
-        else:
+            response_start: HTTPResponseStartEvent = {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": headers,
+                "trailers": False,
+            }
+            await send(response_start)
+            response_body: HTTPResponseBodyEvent = {
+                "type": "http.response.body",
+                "body": b"",
+                "more_body": False,
+            }
+            await send(response_body)
+            return
 
-            async def wrapped_send(event: ASGISendEvent) -> None:
-                if event["type"] == "http.response.start":
-                    original_headers = event.get("headers") or []
-                    access_control_allow_origin = b"*"
+        # 2. Handle actual requests by wrapping the send callable
+        async def wrapped_send(event: ASGISendEvent) -> None:
+            if event["type"] == "http.response.start":
+                # Extract original headers
+                original_headers = list(event.get("headers", []))
+                
+                # Define the CORS headers to inject
+                cors_headers = [
+                    (b"access-control-allow-origin", b"*"),
+                    (b"access-control-allow-headers", b"Authorization, Content-Type"),
+                    (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS"),
+                ]
 
-                    if access_control_allow_origin is not None:
-                        # Construct a new event with new headers
-                        event = {
-                            "type": "http.response.start",
-                            "status": event["status"],
-                            "headers": [
-                                p
-                                for p in original_headers
-                                if p[0] != b"access-control-allow-origin"
-                            ]
-                            + [
-                                (
-                                    b"access-control-allow-origin",
-                                    access_control_allow_origin,
-                                ),
-                            ],
-                            "trailers": event.get("trailers", False),
-                        }
+                # Filter out any existing CORS headers to avoid duplicates
+                filtered_headers = [
+                    (k, v) for k, v in original_headers 
+                    if k.lower() not in (
+                        b"access-control-allow-origin",
+                        b"access-control-allow-headers",
+                        b"access-control-allow-methods"
+                    )
+                ]
 
-                await send(event)
+                # Update the event with combined headers
+                event["headers"] = filtered_headers + cors_headers
 
-            await self.app(scope, receive, wrapped_send)
+            await send(event)
 
-        return None
+        await self.app(scope, receive, wrapped_send)
