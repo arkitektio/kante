@@ -10,11 +10,10 @@ logger = logging.getLogger(__name__)
 class KanteWsConsumer(GraphQLWSConsumer):
     pass
 
-    async def get_context(
-        self, request: ChannelsRequest, response: TemporalResponse
-    ) -> Context:
+    async def get_context(self, request: ChannelsRequest, response: TemporalResponse) -> Context:
         return WsContext(
             request=UniversalRequest(_extensions={}),
+            response=response,
             type="ws",
             connection_params={},
             consumer=self,

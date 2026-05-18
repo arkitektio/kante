@@ -16,12 +16,13 @@ class User(Protocol):
 class Client(Protocol):
     id: str
     client_id: str
-    
-    
+
+
 class Organization(Protocol):
     id: int
     slug: str
-    
+
+
 class Membership(Protocol):
     id: int
 
@@ -43,8 +44,7 @@ class UniversalRequest:
             )
 
         return self._user
-    
-    
+
     @property
     def membership(self) -> Membership:
         """Get the user associated with the request."""
@@ -55,7 +55,6 @@ class UniversalRequest:
 
         return self._membership
 
-
     @property
     def client(self) -> Client:
         if self._client is None:
@@ -64,7 +63,7 @@ class UniversalRequest:
             )
 
         return self._client
-    
+
     @property
     def organization(self) -> Organization:
         if self._organization is None:
@@ -77,14 +76,14 @@ class UniversalRequest:
     def set_user(self, user: User) -> None:
         """Set an extension value in the request."""
         self._user = user
-        
+
     def set_organization(self, organization: Organization) -> None:
         """Set an organization in the request."""
         self._organization = organization
-        
+
     def set_membership(self, membership: Membership) -> None:
         self._membership = membership
-        
+
     def set_client(self, client: Client) -> None:
         """Set an extension value in the request."""
         self._client = client
@@ -105,6 +104,7 @@ class UniversalRequest:
 @dataclass
 class WsContext:
     request: UniversalRequest
+    response: TemporalResponse
     connection_params: Dict[str, Any]
     consumer: ChannelsConsumer
     extensions: Optional[Dict[str, Any]] = None
@@ -117,8 +117,6 @@ class HttpContext:
     response: TemporalResponse
     headers: Mapping[str, str]
     type: Literal["http"] = "http"
-    
-    
 
 
 Context = HttpContext | WsContext
