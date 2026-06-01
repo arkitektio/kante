@@ -27,11 +27,29 @@ class Membership(Protocol):
     id: int
 
 
+class Task(Protocol):
+    "A task represents a unit of work that can be associated with a request."
+
+    id: str
+    """ The unique identifier for the task. This can be used to track the task across different systems and logs. """
+    parent: str | None
+    """ The parent task ID, if this task is a child of another task. This can be used to create a hierarchy of tasks and track the flow of work across different systems. """
+    user: str
+    """ The user associated with the task. This can be used to track which user initiated the task and to enforce permissions and access control. """
+    app: str
+    """ The application associated with the task. This can be used to track which application initiated the task and to enforce permissions and access control. """
+    action: str
+    """ The action associated with the task. This can be used to track what the task is doing and to enforce permissions and access control. """
+    args: Dict[str, Any]
+    """ The arguments associated with the task. This can be used to track the input to the task and to enforce permissions and access control. """
+
+
 @dataclass
 class UniversalRequest:
     _extensions: Dict[str, Any]
     _client: Optional[Client] = None
     _user: Optional[User] = None
+    _task: Optional[Task] = None
     _organization: Optional[Organization] = None
     _membership: Optional[Membership] = None
 
@@ -54,6 +72,16 @@ class UniversalRequest:
             )
 
         return self._membership
+
+    @property
+    def task(self) -> Task:
+        """Get the task associated with the request."""
+        if self._task is None:
+            raise ValueError(
+                "Task is not set in the request. Do you have a strawberry extension setting this?"
+            )
+
+        return self._task
 
     @property
     def client(self) -> Client:
@@ -87,6 +115,10 @@ class UniversalRequest:
     def set_client(self, client: Client) -> None:
         """Set an extension value in the request."""
         self._client = client
+
+    def set_task(self, task: Task) -> None:
+        """Set an the task in the request."""
+        self._task = task
 
     def get_extension(self, name: str) -> Any:
         """Get an extension value from the request."""
