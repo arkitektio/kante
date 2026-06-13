@@ -8,6 +8,19 @@ from asgiref.typing import (
     HTTPResponseStartEvent,
 )
 
+# Hoisted to module scope so they are built once, not rebuilt on every request.
+_CORS_HEADERS = [
+    (b"access-control-allow-origin", b"*"),
+    (b"access-control-allow-headers", b"Authorization, Content-Type"),
+    (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS"),
+]
+_PREFLIGHT_HEADERS = _CORS_HEADERS + [
+    (b"access-control-max-age", b"86400"),
+]
+# Names we strip from upstream responses before re-injecting ours.
+_MANAGED_HEADER_NAMES = frozenset(name for name, _ in _CORS_HEADERS)
+
+
 class CorsMiddleware:
     def __init__(self, app: ASGI3Application) -> None:
         self.app = app
@@ -17,16 +30,10 @@ class CorsMiddleware:
     ) -> None:
         # 1. Handle Preflight (OPTIONS) requests
         if scope["type"] == "http" and scope["method"] == "OPTIONS":
-            headers = [
-                (b"access-control-allow-origin", b"*"),
-                (b"access-control-allow-headers", b"Authorization, Content-Type"),
-                (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS"),
-                (b"access-control-max-age", b"86400"),
-            ]
             response_start: HTTPResponseStartEvent = {
                 "type": "http.response.start",
                 "status": 200,
-                "headers": headers,
+                "headers": _PREFLIGHT_HEADERS,
                 "trailers": False,
             }
             await send(response_start)
@@ -41,28 +48,12 @@ class CorsMiddleware:
         # 2. Handle actual requests by wrapping the send callable
         async def wrapped_send(event: ASGISendEvent) -> None:
             if event["type"] == "http.response.start":
-                # Extract original headers
-                original_headers = list(event.get("headers", []))
-                
-                # Define the CORS headers to inject
-                cors_headers = [
-                    (b"access-control-allow-origin", b"*"),
-                    (b"access-control-allow-headers", b"Authorization, Content-Type"),
-                    (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS"),
-                ]
-
-                # Filter out any existing CORS headers to avoid duplicates
+                # Drop any upstream CORS headers, then append ours once.
                 filtered_headers = [
-                    (k, v) for k, v in original_headers 
-                    if k.lower() not in (
-                        b"access-control-allow-origin",
-                        b"access-control-allow-headers",
-                        b"access-control-allow-methods"
-                    )
+                    (k, v) for k, v in event.get("headers", [])
+                    if k.lower() not in _MANAGED_HEADER_NAMES
                 ]
-
-                # Update the event with combined headers
-                event["headers"] = filtered_headers + cors_headers
+                event["headers"] = filtered_headers + _CORS_HEADERS
 
             await send(event)
 

@@ -1,5 +1,5 @@
 from strawberry.channels import ChannelsConsumer
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, Literal, Mapping, Optional, Protocol
 from strawberry.http.temporal_response import TemporalResponse
 
@@ -44,7 +44,7 @@ class Task(Protocol):
     """ The arguments associated with the task. This can be used to track the input to the task and to enforce permissions and access control. """
 
 
-@dataclass
+@dataclass(slots=True)
 class UniversalRequest:
     _extensions: Dict[str, Any]
     _client: Optional[Client] = None
@@ -141,6 +141,9 @@ class WsContext:
     consumer: ChannelsConsumer
     extensions: Optional[Dict[str, Any]] = None
     type: Literal["ws"] = "ws"
+    # Per-request store for batching DataLoaders (e.g. federation reference
+    # resolution). Not slotted so downstream extensions can still stash state.
+    _loaders: Dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
 
 
 @dataclass
@@ -149,6 +152,9 @@ class HttpContext:
     response: TemporalResponse
     headers: Mapping[str, str]
     type: Literal["http"] = "http"
+    # Per-request store for batching DataLoaders (e.g. federation reference
+    # resolution). Not slotted so downstream extensions can still stash state.
+    _loaders: Dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
 
 
 Context = HttpContext | WsContext

@@ -1,5 +1,7 @@
 from typing import (
+    Any,
     Callable,
+    List,
     Literal,
     Optional,
     Sequence,
@@ -11,6 +13,7 @@ from typing import (
 import strawberry
 import strawberry_django
 from django.db.models import Model
+from strawberry.dataloader import DataLoader
 from strawberry.experimental import pydantic
 from strawberry.federation.schema_directives import (
     Key,
@@ -56,6 +59,47 @@ DjangoTypeDecorator = Callable[
 ]
 
 
+def _build_reference_loader(model: Type[Model]) -> DataLoader[str, Optional[Model]]:
+    """Build a DataLoader that batches federation reference lookups by id.
+
+    A federation gateway batches references into a single ``_entities`` query,
+    but strawberry calls ``resolve_reference`` once per representation. Without
+    batching that is one DB query per referenced entity (N+1). This loader
+    collapses all ids requested within one event-loop tick into a single
+    ``filter(id__in=...)`` query.
+    """
+
+    async def load_fn(keys: List[str]) -> List[Optional[Model]]:
+        objects = {
+            str(obj.id): obj
+            async for obj in model.objects.filter(id__in=list(keys))
+        }
+        return [objects.get(str(key)) for key in keys]
+
+    return DataLoader(load_fn=load_fn)
+
+
+def _get_reference_loader(
+    context: Any, model: Type[Model]
+) -> DataLoader[str, Optional[Model]]:
+    """Return a per-request reference loader, cached on the context.
+
+    The loader must be shared across the representations of a single request for
+    batching to work, so it is stashed in the context's ``_loaders`` store. If
+    the context cannot hold it (no ``_loaders``), fall back to an unbatched
+    loader -- still correct, just no batching.
+    """
+    store = getattr(context, "_loaders", None)
+    if store is None:
+        return _build_reference_loader(model)
+    key = f"federation_ref:{model._meta.label}"
+    loader: Optional[DataLoader[str, Optional[Model]]] = store.get(key)
+    if loader is None:
+        loader = _build_reference_loader(model)
+        store[key] = loader
+    return loader
+
+
 def django_type(
     model: Type[Model],
     name: Optional[str] = None,
@@ -99,9 +143,13 @@ def django_type(
             # Check if resolve_reference method is defined in the class
             # Note: kante federation will add this if not present
             if not hasattr(cls, "resolve_reference"):
-                # Add a default resolve_reference method that looks up by id
-                def resolve_reference(cls: Type[object], info: Info, id: str) -> object:
-                    return model.objects.aget(id=id)
+                # Add a default resolve_reference that batches lookups by id via
+                # a per-request DataLoader, avoiding N+1 across federated joins.
+                async def resolve_reference(
+                    cls: Type[object], info: Info, id: str
+                ) -> object:
+                    loader = _get_reference_loader(info.context, model)
+                    return await loader.load(id)
 
                 setattr(cls, "resolve_reference", classmethod(resolve_reference))
 

@@ -69,18 +69,21 @@ def router(
     gql_ws_consumer = KanteWsConsumer.as_asgi(schema=schema) # type: ignore
     
     
+    # Performance: the SDL is immutable at runtime but ``as_str()`` walks the
+    # whole type graph, so render it once here instead of on every request.
+    schema_content = schema.as_str().encode('utf-8')
+    schema_content_length = str(len(schema_content)).encode()
+
     async def graphql_schema(scope, receive, send) -> None: # type: ignore
         """ASGI view to serve the GraphQL schema as plain text."""
         await receive()
-        
-        schema_content = schema.as_str().encode('utf-8')
-        
+
         await send({
             'type': 'http.response.start',
             'status': 200,
             'headers': [
                 [b'content-type', b'text/plain'],
-                [b'content-length', str(len(schema_content)).encode()],
+                [b'content-length', schema_content_length],
             ],
         })
         
