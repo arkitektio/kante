@@ -1,6 +1,7 @@
+import datetime
 from strawberry.channels import ChannelsConsumer
 from dataclasses import dataclass, field
-from typing import Any, Dict, Literal, Mapping, Optional, Protocol
+from typing import Any, Dict, List, Literal, Mapping, Optional, Protocol
 from strawberry.http.temporal_response import TemporalResponse
 
 
@@ -27,21 +28,68 @@ class Membership(Protocol):
     id: int
 
 
-class Task(Protocol):
-    "A task represents a unit of work that can be associated with a request."
+class Actor(Protocol):
+    "The executing agent a provenance token is issued to."
 
-    id: str
-    """ The unique identifier for the task. This can be used to track the task across different systems and logs. """
-    parent: str | None
-    """ The parent task ID, if this task is a child of another task. This can be used to create a hierarchy of tasks and track the flow of work across different systems. """
-    user: str
-    """ The user associated with the task. This can be used to track which user initiated the task and to enforce permissions and access control. """
-    app: str
-    """ The application associated with the task. This can be used to track which application initiated the task and to enforce permissions and access control. """
-    action: str
-    """ The action associated with the task. This can be used to track what the task is doing and to enforce permissions and access control. """
-    args: Dict[str, Any]
-    """ The arguments associated with the task. This can be used to track the input to the task and to enforce permissions and access control. """
+    sub: str
+    """ The executing agent's user sub. """
+    cid: str
+    """ The executing agent's OAuth client_id. """
+
+
+class Provenance(Protocol):
+    """A provenance token attesting who caused a unit of work and with which inputs.
+
+    Minted by Rekuest at each assignment and verified on the consuming end; it is
+    delivered under the Rekuest task header and attached to the request so
+    resolvers can read it contextually. Mirrors
+    ``authentikate.provenance.ProvenanceToken``.
+    """
+
+    # --- registered claims ---
+    iss: str
+    """ The provenance issuer id (e.g. "rekuest"). """
+    aud: List[str]
+    """ The target services the token is scoped to. """
+    sub: str
+    """ The immediate causer of this hop (the request principal). """
+    act: Actor
+    """ The actor the token is issued to (the executing agent). """
+    iat: datetime.datetime
+    """ Issued-at. """
+    exp: datetime.datetime
+    """ Expiry. """
+    jti: str
+    """ Unique per token; the verifier enforces single-use. """
+
+    # --- rekuest provenance claims ---
+    tsk: str
+    """ This assignation id. """
+    ptk: str | None
+    """ Immediate parent assignation id (None if this is the root). """
+    rtk: str
+    """ Root assignation id of the whole tree. """
+    rcb: str
+    """ The human principal at the root of the tree (always human). """
+    ahs: str
+    """ SHA-256 of the canonicalized args. """
+    aha: str
+    """ The canonicalization algorithm/version, so a verifier can recompute ahs. """
+    raw: str
+    """ The raw original token string. """
+
+    @property
+    def is_root(self) -> bool:
+        """Whether this token is the root of its causal tree."""
+        ...
+
+    def has_audience(self, service: str) -> bool:
+        """Whether ``service`` is one of the token's target audiences."""
+        ...
+
+    def verify_args(self, args: Any) -> bool:
+        """Whether ``args`` canonically hash to this token's ``ahs``."""
+        ...
 
 
 @dataclass(slots=True)
@@ -49,7 +97,7 @@ class UniversalRequest:
     _extensions: Dict[str, Any]
     _client: Optional[Client] = None
     _user: Optional[User] = None
-    _task: Optional[Task] = None
+    _provenance: Optional[Provenance] = None
     _organization: Optional[Organization] = None
     _membership: Optional[Membership] = None
 
@@ -74,14 +122,14 @@ class UniversalRequest:
         return self._membership
 
     @property
-    def task(self) -> Task:
-        """Get the task associated with the request."""
-        if self._task is None:
+    def provenance(self) -> Provenance:
+        """Get the provenance token associated with the request."""
+        if self._provenance is None:
             raise ValueError(
-                "Task is not set in the request. Do you have a strawberry extension setting this?"
+                "Provenance is not set in the request. Do you have a strawberry extension setting this?"
             )
 
-        return self._task
+        return self._provenance
 
     @property
     def client(self) -> Client:
@@ -116,9 +164,9 @@ class UniversalRequest:
         """Set an extension value in the request."""
         self._client = client
 
-    def set_task(self, task: Task) -> None:
-        """Set an the task in the request."""
-        self._task = task
+    def set_provenance(self, provenance: Provenance) -> None:
+        """Set the provenance token in the request."""
+        self._provenance = provenance
 
     def get_extension(self, name: str) -> Any:
         """Get an extension value from the request."""
