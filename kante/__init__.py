@@ -14,7 +14,6 @@ from .type import (
     django_input,
     scalar,  # type: ignore[assignment]
     filter_type,
-    filter,
     filter_field,
 )
 from .type import Info
@@ -36,7 +35,6 @@ __all__ = [
     "django_input",
     "scalar",
     "filter_type",
-    "filter",
     "filter_field",
     "pydantic_input",
     "Info",

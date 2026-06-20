@@ -32,7 +32,6 @@ from strawberry_django import input as sdjango_input
 
 
 filter_type = filters.filter_type
-filter = filters.filter
 filter_field = sfilter_field
 
 django_mutation = strawberry_django.mutation
