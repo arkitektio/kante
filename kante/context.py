@@ -14,14 +14,28 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Protocol
 from strawberry.http.temporal_response import TemporalResponse
 
 
-# NOTE: every member below is declared read-only (``@property``). A protocol
-# member written as a plain annotation (``sub: str``) is a *settable* member, and
-# mypy rejects a read-only implementation against it -- which is exactly what
-# Django hands us: ``is_anonymous`` is a ``@property`` on ``AbstractBaseUser``.
+# NOTE: every member of every protocol below is declared read-only
+# (``@property``) -- including ``Actor`` and ``Provenance``. Do not "simplify"
+# any of them back to a plain annotation (``sub: str``).
+#
+# A plain annotation is a *settable* protocol member, which has two consequences,
+# both of which have bitten us:
+#
+#   1. mypy rejects a read-only implementation against it -- which is exactly
+#      what Django hands us: ``is_anonymous`` is a ``@property`` on
+#      ``AbstractBaseUser``. Getting this wrong forced a ``# type: ignore`` onto
+#      every ``UniversalRequest(...)`` construction downstream.
+#   2. A settable member is *invariant*, so its type must match exactly rather
+#      than merely be compatible. ``Provenance.act`` was declared as settable
+#      ``act: Actor``, which meant no implementation could ever satisfy
+#      ``Provenance`` unless its ``act`` was literally ``kante.context.Actor`` --
+#      a structural match was not enough, so
+#      ``authentikate.provenance.ProvenanceToken`` was rejected despite being a
+#      perfect fit.
+#
 # Read-only members accept both plain attributes (Django fields, pydantic fields)
-# and properties, so this is the permissive direction. Getting this wrong is what
-# forced a ``# type: ignore`` onto every ``UniversalRequest(...)`` construction
-# downstream.
+# and properties, and are covariant, so this is the permissive direction in both
+# respects.
 
 
 class User(Protocol):
@@ -54,7 +68,7 @@ class Client(Protocol):
     """The OAuth client an authenticated request was made through."""
 
     @property
-    def id(self) -> str:
+    def id(self) -> int:
         """The client's primary key."""
         ...
 
@@ -90,10 +104,15 @@ class Membership(Protocol):
 class Actor(Protocol):
     "The executing agent a provenance token is issued to."
 
-    sub: str
-    """ The executing agent's user sub. """
-    cid: str
-    """ The executing agent's OAuth client_id. """
+    @property
+    def sub(self) -> str:
+        """The executing agent's user sub."""
+        ...
+
+    @property
+    def cid(self) -> str:
+        """The executing agent's OAuth client_id."""
+        ...
 
 
 class Provenance(Protocol):
@@ -106,36 +125,84 @@ class Provenance(Protocol):
     """
 
     # --- registered claims ---
-    iss: str
-    """ The provenance issuer id (e.g. "rekuest"). """
-    aud: List[str]
-    """ The target services the token is scoped to. """
-    sub: str
-    """ The immediate causer of this hop (the request principal). """
-    act: Actor
-    """ The actor the token is issued to (the executing agent). """
-    iat: datetime.datetime
-    """ Issued-at. """
-    exp: datetime.datetime
-    """ Expiry. """
-    jti: str
-    """ Unique per token; the verifier enforces single-use. """
+    @property
+    def iss(self) -> str:
+        """The provenance issuer id (e.g. "rekuest")."""
+        ...
+
+    @property
+    def aud(self) -> List[str]:
+        """The target services the token is scoped to."""
+        ...
+
+    @property
+    def sub(self) -> str:
+        """The immediate causer of this hop (the request principal)."""
+        ...
+
+    @property
+    def act(self) -> Actor:
+        """The actor the token is issued to (the executing agent).
+
+        Read-only for the reason in the NOTE above, and this member in
+        particular: a settable member is *invariant*, so an implementation whose
+        ``act`` is its own concrete Actor class would be rejected even though
+        that class satisfies :class:`Actor` perfectly well. Read-only makes it
+        covariant, which is what lets ``authentikate.provenance.ProvenanceToken``
+        satisfy this protocol.
+        """
+        ...
+
+    @property
+    def iat(self) -> datetime.datetime:
+        """Issued-at."""
+        ...
+
+    @property
+    def exp(self) -> datetime.datetime:
+        """Expiry."""
+        ...
+
+    @property
+    def jti(self) -> str:
+        """Unique per token; the verifier enforces single-use."""
+        ...
 
     # --- rekuest provenance claims ---
-    tsk: str
-    """ This assignation id. """
-    ptk: str | None
-    """ Immediate parent assignation id (None if this is the root). """
-    rtk: str
-    """ Root assignation id of the whole tree. """
-    rcb: str
-    """ The human principal at the root of the tree (always human). """
-    ahs: str
-    """ SHA-256 of the canonicalized args. """
-    aha: str
-    """ The canonicalization algorithm/version, so a verifier can recompute ahs. """
-    raw: str
-    """ The raw original token string. """
+    @property
+    def tsk(self) -> str:
+        """This assignation id."""
+        ...
+
+    @property
+    def ptk(self) -> str | None:
+        """Immediate parent assignation id (None if this is the root)."""
+        ...
+
+    @property
+    def rtk(self) -> str:
+        """Root assignation id of the whole tree."""
+        ...
+
+    @property
+    def rcb(self) -> str:
+        """The human principal at the root of the tree (always human)."""
+        ...
+
+    @property
+    def ahs(self) -> str:
+        """SHA-256 of the canonicalized args."""
+        ...
+
+    @property
+    def aha(self) -> str:
+        """The canonicalization algorithm/version, so a verifier can recompute ahs."""
+        ...
+
+    @property
+    def raw(self) -> str:
+        """The raw original token string."""
+        ...
 
     @property
     def is_root(self) -> bool:
