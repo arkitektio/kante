@@ -1,5 +1,32 @@
+"""Type and field decorators: strawberry re-exports plus federation support.
+
+.. warning::
+
+   The plain re-exports below (``type``, ``input``, ``interface``, ``mutation``,
+   ``field``, ``scalar``, ...) are module-level *aliases* of strawberry's
+   overloaded decorators, and mypy does not carry an overload set across an
+   alias. Decorating with ``@kante.type`` therefore resolves the class to
+   ``builtins.type`` and every keyword of its constructor is reported as
+   unexpected::
+
+       @kante.type
+       class Me:
+           id: str
+
+       Me(id="1")  # error: Unexpected keyword argument "id" for "Me"
+
+   The same code type-checks correctly with ``@strawberry.type``. **Prefer
+   importing these directly from strawberry / strawberry_django**; they are kept
+   here only for backwards compatibility and add nothing over the originals.
+
+   What is worth importing from kante is what is actually *implemented* here:
+   :func:`django_type` (federation ``@key`` plus a batching
+   ``resolve_reference``) and :func:`django_interface`.
+"""
+
 from typing import (
     Any,
+    cast,
     Callable,
     List,
     Literal,
@@ -40,7 +67,7 @@ mutation = strawberry.mutation
 django_input = sdjango_input
 input = strawberry.input
 
-scalar = strawberry.scalar  # type: ignore[assignment]
+scalar = strawberry.scalar
 
 interface = strawberry.interface
 subscription = strawberry.subscription
@@ -69,9 +96,10 @@ def _build_reference_loader(model: Type[Model]) -> DataLoader[str, Optional[Mode
     """
 
     async def load_fn(keys: List[str]) -> List[Optional[Model]]:
+        manager = cast("Any", model._default_manager)
         objects = {
             str(obj.id): obj
-            async for obj in model.objects.filter(id__in=list(keys))
+            async for obj in manager.filter(id__in=list(keys))
         }
         return [objects.get(str(key)) for key in keys]
 
@@ -125,9 +153,17 @@ def django_type(
     [Type[T]],
     Type[T],
 ]:
+    """Map a Django model onto a strawberry type, with federation support.
+
+    With ``federated=True`` (the default) the type gains an ``@key(fields: "id")``
+    directive and, unless it defines one itself, a ``resolve_reference`` that
+    batches entity lookups through a per-request DataLoader.
+    """
     if federated:
         directives = list(directives or [])
-        directives.append(Key(fields="id"))
+        # ``Key`` is annotated as taking a ``FieldSet`` scalar; "id" is the
+        # field-set literal that scalar wraps.
+        directives.append(Key(fields=cast(Any, "id")))
 
     def wrapper(cls: Type[T]) -> Type[T]:
         """A decorator to create a Django type with federation support."""
@@ -135,9 +171,16 @@ def django_type(
         if federated:
             # Check if id field is defined in type annotations
             annotations = getattr(cls, "__annotations__", {})
-            assert "id" in annotations, (
-                "Django type must have an 'id' field annotation for federation"
-            )
+            # Explicit raise, not ``assert``: under ``python -O`` an assert is
+            # stripped, and the failure mode becomes a schema that advertises
+            # ``@key(fields: "id")`` on a type with no ``id`` -- a federation
+            # error at gateway composition time, far from its cause.
+            if "id" not in annotations:
+                raise TypeError(
+                    f"{cls.__name__} is declared with federated=True but has no 'id' "
+                    "field annotation. Federation keys on 'id', so the type must "
+                    "declare one (or pass federated=False)."
+                )
 
             # Check if resolve_reference method is defined in the class
             # Note: kante federation will add this if not present

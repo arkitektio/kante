@@ -1,3 +1,5 @@
+"""URL helpers that respect the ``MY_SCRIPT_NAME`` deployment prefix."""
+
 from typing import Any
 from django.urls import path, re_path, URLPattern
 from django.conf import settings

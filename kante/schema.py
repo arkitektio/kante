@@ -1,4 +1,7 @@
-from typing import Iterable
+"""kante's Schema: a federation schema with the Django optimizer installed."""
+
+import warnings
+from typing import Any, Iterable
 from graphql import ExecutionContext
 import strawberry
 from strawberry.extensions import SchemaExtension
@@ -24,8 +27,9 @@ class Schema(strawberry.federation.Schema):
         schema_directives: Iterable[object] = (),
         enable_optimizer: bool = True,
         enable_federation_2: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
+        """Build the schema, installing the Django optimizer unless opted out."""
         # Performance: strawberry-django issues one query per nested relation
         # unless the optimizer extension is installed. Since kante exists to
         # support strawberry-django projects, register it by default so users
@@ -44,6 +48,17 @@ class Schema(strawberry.federation.Schema):
         # longer takes this argument (it uses ``federation_version``, defaulting
         # to v2), so forwarding it would raise. Federation 2 is already the
         # default, making this a no-op kept only to avoid breaking callers.
+        #
+        # Warn rather than ignore silently: a caller passing False today believes
+        # they are getting federation 1 and are not.
+        if not enable_federation_2:
+            warnings.warn(
+                "enable_federation_2=False has no effect: kante.Schema always "
+                "builds a federation 2 schema. The argument is accepted only for "
+                "backwards compatibility and will be removed in kante 3.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         super().__init__(
             query=query,
             mutation=mutation,

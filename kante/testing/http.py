@@ -1,5 +1,7 @@
+"""ASGI test clients for driving GraphQL over HTTP."""
+
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple, cast
 from channels.testing import ApplicationCommunicator
 
 
@@ -85,7 +87,7 @@ class GraphQLHttpTestClient:
         response_body = await communicator.receive_output(timeout=timeout)
         assert response_body["type"] == "http.response.body", f"Unexpected type: {response_body}"
 
-        return json.loads(response_body["body"])
+        return cast(Dict[str, Any], json.loads(response_body["body"]))
 
 
 
@@ -104,6 +106,7 @@ class HttpGetTestClient:
         application: Any,
         headers: Optional[Dict[str, str]] = None
     ) -> None:
+        """Bind the client to an ASGI application."""
         self.application = application
         self.headers = headers or {}
 
@@ -148,4 +151,4 @@ class HttpGetTestClient:
         response_body = await communicator.receive_output(timeout=timeout)
         assert response_body["type"] == "http.response.body", f"Unexpected type: {response_body}"
 
-        return response_body["body"].decode()
+        return cast(str, response_body["body"].decode())

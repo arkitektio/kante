@@ -44,7 +44,6 @@ asyncio_default_fixture_loop_scope = "function"
 
 
 [tool.ruff]
-extend-select = ["ANN", "D1"]
 
 
 # Exclude a variety of commonly ignored directories.
@@ -76,6 +75,22 @@ line-length = 100
 
 # Assume Python 3.12.
 target-version = "py312"
+
+[tool.ruff.lint]
+extend-select = ["ANN", "D1"]
+# kante is a pass-through layer over strawberry: it forwards **kwargs it does not
+# interpret, and stores extension payloads it does not model. Annotating those as
+# anything narrower than Any would be a lie.
+ignore = ["ANN401"]
+
+[tool.ruff.lint.per-file-ignores]
+# The test suite and the demo project are not public API; docstring and
+# annotation rules apply to the library itself.
+"tests/*" = ["ANN", "D1"]
+"test_app/*" = ["ANN", "D1"]
+"test_project/*" = ["ANN", "D1"]
+"manage.py" = ["ANN", "D1"]
+"tmanage.py" = ["ANN", "D1"]
 
 [tool.uv]
 dev-dependencies = [

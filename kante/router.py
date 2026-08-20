@@ -18,7 +18,7 @@ from typing import Any, cast
 
 
 from django.urls import URLPattern
-from channels.routing import ProtocolTypeRouter, URLRouter # type: ignore
+from channels.routing import ProtocolTypeRouter, URLRouter
 from kante.consumers import KanteHTTPConsumer, KanteWsConsumer
 from kante.middleware.cors import CorsMiddleware
 
@@ -26,9 +26,13 @@ from django.core.handlers.asgi import ASGIHandler
 from strawberry import Schema
 from .path import re_dynamicpath, dynamicpath
 from asgiref.typing import (
-    ASGI3Application
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
+    Scope,
 )
-from strawberry_django.routers import AuthGraphQLProtocolTypeRouter
 
 
 def router(
@@ -65,8 +69,8 @@ def router(
     graphql_url_patterns = graphql_url_patterns or [r"^graphql", r"^graphql/"]
     
     
-    gql_http_consumer = KanteHTTPConsumer.as_asgi(schema=schema) # type: ignore
-    gql_ws_consumer = KanteWsConsumer.as_asgi(schema=schema) # type: ignore
+    gql_http_consumer = KanteHTTPConsumer.as_asgi(schema=schema)
+    gql_ws_consumer = KanteWsConsumer.as_asgi(schema=schema)
     
     
     # Performance: the SDL is immutable at runtime but ``as_str()`` walks the
@@ -74,24 +78,30 @@ def router(
     schema_content = schema.as_str().encode('utf-8')
     schema_content_length = str(len(schema_content)).encode()
 
-    async def graphql_schema(scope, receive, send) -> None: # type: ignore
+    async def graphql_schema(
+        scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         """ASGI view to serve the GraphQL schema as plain text."""
         await receive()
 
-        await send({
+        response_start: HTTPResponseStartEvent = {
             'type': 'http.response.start',
             'status': 200,
             'headers': [
-                [b'content-type', b'text/plain'],
-                [b'content-length', schema_content_length],
+                (b'content-type', b'text/plain'),
+                (b'content-length', schema_content_length),
             ],
-        })
-        
-        await send({
+            'trailers': False,
+        }
+        await send(response_start)
+
+        response_body: HTTPResponseBodyEvent = {
             'type': 'http.response.body',
             'body': schema_content,
-        })  
-        
+            'more_body': False,
+        }
+        await send(response_body)
+
     
     http_urlpatterns = [
         re_dynamicpath(graphql_url_pattern, gql_http_consumer) for graphql_url_pattern in graphql_url_patterns

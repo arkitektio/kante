@@ -1,3 +1,5 @@
+""" All public API of kante. """
+
 from .type import (
     type,
     field,
@@ -5,21 +7,34 @@ from .type import (
     django_type,
     django_field,
     django_interface,
-    django_mutation,  # type: ignore[assignment]
+    django_mutation,
     pydantic_input,
     mutation,
     pydantic_type,
     subscription,
     input,
     django_input,
-    scalar,  # type: ignore[assignment]
+    scalar,
     filter_type,
     filter_field,
 )
-from .type import Info
+
+# NOTE: import ``Info`` from ``.types``, NOT from ``.type``. ``kante/type.py``
+# imports strawberry's *unparameterized* ``Info`` for its own annotations;
+# re-exporting that one made ``kante.Info`` silently different from
+# ``kante.types.Info`` (``Info[Context, Any]``), so every ``from kante import Info``
+# lost all typing on ``info.context``.
+from .types import Info, WsInfo, HttpInfo, is_ws, require_ws
+from .context import Context, HttpContext, WsContext, UniversalRequest
+from .errors import (
+    KanteError,
+    NotFound,
+    PermissionDenied,
+    ValidationError,
+    AuthenticationError,
+)
 from .schema import Schema
 
-""" All public API of kante. """
 __all__ = [
     "type",
     "field",
@@ -38,5 +53,18 @@ __all__ = [
     "filter_field",
     "pydantic_input",
     "Info",
+    "WsInfo",
+    "HttpInfo",
+    "is_ws",
+    "require_ws",
+    "Context",
+    "HttpContext",
+    "WsContext",
+    "UniversalRequest",
+    "KanteError",
+    "NotFound",
+    "PermissionDenied",
+    "ValidationError",
+    "AuthenticationError",
     "Schema",
 ]

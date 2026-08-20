@@ -1,3 +1,12 @@
+"""The request context kante hands to every resolver.
+
+A resolver reaches the caller through ``info.context.request``: the user, the
+client, the organization, the membership and (when present) the provenance
+token. The principals are declared here as structural protocols so kante stays
+independent of whichever models a service authenticates with -- ``authentikate``
+is what fills them in.
+"""
+
 import datetime
 from strawberry.channels import ChannelsConsumer
 from dataclasses import dataclass, field
@@ -5,27 +14,77 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Protocol
 from strawberry.http.temporal_response import TemporalResponse
 
 
-class User(Protocol):
-    id: int
-    sub: str
+# NOTE: every member below is declared read-only (``@property``). A protocol
+# member written as a plain annotation (``sub: str``) is a *settable* member, and
+# mypy rejects a read-only implementation against it -- which is exactly what
+# Django hands us: ``is_anonymous`` is a ``@property`` on ``AbstractBaseUser``.
+# Read-only members accept both plain attributes (Django fields, pydantic fields)
+# and properties, so this is the permissive direction. Getting this wrong is what
+# forced a ``# type: ignore`` onto every ``UniversalRequest(...)`` construction
+# downstream.
 
+
+class User(Protocol):
+    """The authenticated principal of a request."""
+
+    @property
+    def id(self) -> int:
+        """The user's primary key."""
+        ...
+
+    @property
+    def sub(self) -> str | None:
+        """The ``sub`` claim of the token that authenticated this user.
+
+        Optional: a user row can exist without one (e.g. a locally created
+        superuser), which is how ``authentikate`` models it.
+        """
+        ...
+
+    @property
     def is_anonymous(self) -> bool:
-        """Check if the user is anonymous."""
+        """Whether the user is anonymous.
+
+        A read-only property, matching ``django.contrib.auth.base_user``.
+        """
         ...
 
 
 class Client(Protocol):
-    id: str
-    client_id: str
+    """The OAuth client an authenticated request was made through."""
+
+    @property
+    def id(self) -> str:
+        """The client's primary key."""
+        ...
+
+    @property
+    def client_id(self) -> str:
+        """The client's OAuth ``client_id``."""
+        ...
 
 
 class Organization(Protocol):
-    id: int
-    slug: str
+    """The tenant a request is scoped to."""
+
+    @property
+    def id(self) -> int:
+        """The organization's primary key."""
+        ...
+
+    @property
+    def slug(self) -> str:
+        """The organization's unique slug."""
+        ...
 
 
 class Membership(Protocol):
-    id: int
+    """The link between a :class:`User` and an :class:`Organization`."""
+
+    @property
+    def id(self) -> int:
+        """The membership's primary key."""
+        ...
 
 
 class Actor(Protocol):
@@ -94,6 +153,13 @@ class Provenance(Protocol):
 
 @dataclass(slots=True)
 class UniversalRequest:
+    """The authenticated principals of one request.
+
+    Fields start unset and are filled in by a strawberry extension
+    (``authentikate``'s). Reading one that was never set raises, so an
+    unauthenticated request fails loudly rather than resolving as nobody.
+    """
+
     _extensions: Dict[str, Any]
     _client: Optional[Client] = None
     _user: Optional[User] = None
@@ -133,6 +199,7 @@ class UniversalRequest:
 
     @property
     def client(self) -> Client:
+        """Get the OAuth client associated with the request."""
         if self._client is None:
             raise ValueError(
                 "Client is not set in the request.  Do you have a strawberry extension setting this?"
@@ -142,6 +209,7 @@ class UniversalRequest:
 
     @property
     def organization(self) -> Organization:
+        """Get the organization associated with the request."""
         if self._organization is None:
             raise ValueError(
                 "Organization is not set in the request.  Do you have a strawberry extension setting this?"
@@ -158,6 +226,7 @@ class UniversalRequest:
         self._organization = organization
 
     def set_membership(self, membership: Membership) -> None:
+        """Set the membership in the request."""
         self._membership = membership
 
     def set_client(self, client: Client) -> None:
@@ -183,6 +252,8 @@ class UniversalRequest:
 
 @dataclass
 class WsContext:
+    """The request context of a GraphQL websocket connection."""
+
     request: UniversalRequest
     response: TemporalResponse
     connection_params: Dict[str, Any]
@@ -196,6 +267,8 @@ class WsContext:
 
 @dataclass
 class HttpContext:
+    """The request context of a GraphQL HTTP request."""
+
     request: UniversalRequest
     response: TemporalResponse
     headers: Mapping[str, str]

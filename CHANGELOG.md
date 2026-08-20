@@ -1,6 +1,125 @@
 # CHANGELOG
 
 
+## Unreleased
+
+### Fixed
+
+- **`kante.Info` is now the context-typed `Info`.** `kante/__init__` re-exported
+  the *unparameterized* `strawberry.types.Info` that `kante/type.py` imports for
+  its own annotations, so `from kante import Info` and `kante.Info` silently
+  resolved to `Info[Any, Any]` and `info.context` type-checked against nothing.
+  It is now imported from `kante.types`, matching `from kante.types import Info`.
+- **The `User`, `Client`, `Organization` and `Membership` protocols are now
+  satisfiable.** `User` declared `sub: str` and `def is_anonymous(self) -> bool`,
+  but Django's `is_anonymous` is a read-only `@property` and `authentikate`'s
+  `sub` is nullable -- so no real model matched, and every downstream conftest
+  carried a `# type: ignore` on each field of `UniversalRequest(...)`. All
+  members are now read-only properties, which accept plain attributes and
+  properties alike.
+- `django_type(federated=True)` raises `TypeError` instead of asserting that the
+  type declares `id`; an `assert` is stripped under `python -O`, leaving a schema
+  that advertises `@key(fields: "id")` on a type without one.
+- `HttpGetTestClient.get` referenced `List`/`Tuple` without importing them.
+  Harmless at runtime (PEP 526 does not evaluate local annotations) but a real
+  type error.
+- The `router()` example in the README passed `django_asgi_app` positionally,
+  where it binds to `schema` and raises `TypeError`.
+- `mypy` and `ruff` now pass on the whole repository. Both already ran in CI
+  (`quality.yaml`) and both were failing.
+
+### Added
+
+- **`kante.scoping`** -- organization (tenant) scoping, previously copy-pasted
+  into four services: `for_org`, `get_for_org`, `aget_for_org`,
+  `organization_path`, `build_prescoped_queryset`, `build_prescoper`, and an
+  `OrganizationScoper` for services needing a different depth or an escape list.
+  A model with no path to an organization now raises `UnscopedModelError` rather
+  than silently returning every tenant's rows. `filters: null` passed as a
+  variable no longer raises `AttributeError` inside the scope check.
+- **`kante.errors`** -- `KanteError` and friends (`NotFound`, `PermissionDenied`,
+  `ValidationError`, `AuthenticationError`), which attach `extensions.code` so a
+  client can distinguish a deliberate error from an internal one. No masking
+  extension is installed; messages travel exactly as before.
+- **`Channel.org_group()` / `kante.channel.org_group()`** -- one definition of a
+  tenant-scoped room name for the broadcaster and the listener to share, instead
+  of the same f-string written in two files.
+- **`Channel.broadcast_on_commit()`** -- fan an event out only once the writing
+  transaction commits, so a rolled-back create never announces a row that does
+  not exist.
+- **`kante.channel.CRUDSignal`** -- the standard `create`/`update`/`delete`
+  envelope, previously hand-written in eight services.
+- **`Channel(..., default_groups=[...])`** -- a channel-scoped default room, the
+  supported replacement for the process-wide `"default"` one.
+- **`kante.types.WsInfo` / `HttpInfo` / `require_ws()` / `is_ws()`** -- narrowing
+  for subscriptions, which previously needed an `assert isinstance(...)` (also
+  stripped under `-O`) or a `cast` at every call site.
+- **`kante.testing.build_http_context` / `build_ws_context` / `build_request`** --
+  request-context factories for tests, replacing the block repeated in ten
+  services' conftests.
+
+### Changed
+
+- `Channel.listen()` now accepts the resolver's `info` as well as a `WsContext`.
+  Every call site passes `info.context`, whose static type is the
+  `HttpContext | WsContext` union, so the old signature was unsatisfiable without
+  a cast. Passing a `WsContext` still works.
+
+### Deprecated
+
+- Calling `broadcast` / `abroadcast` / `listen` **without `groups`** now warns.
+  The fallback is a single process-wide `"default"` room shared by every channel
+  in the deployment -- including across organizations. Pass `groups=` (see
+  `Channel.org_group`) or set `default_groups=` on the channel. The fallback will
+  be removed in kante 3.
+- `Schema(enable_federation_2=False)` now warns instead of being silently
+  ignored. kante always builds a federation 2 schema.
+- Passing `filters: {scope: ...}` **inline** in a query document now warns. It
+  was never refused (only a scope passed as a *variable* was): `variable_values`
+  did not contain it, so the query fell through and was scoped to the
+  authenticated organization anyway. It stays ignored and stays scoped -- the
+  warning just makes the ignoring visible. It becomes an error in kante 3.
+- The plain re-exports in `kante.type` (`type`, `input`, `interface`, `field`,
+  `mutation`, `scalar`, ...) are documented as discouraged: mypy does not carry
+  an overload set across a module-level alias, so `@kante.type` resolves the
+  decorated class to `builtins.type` and its constructor keywords are all
+  reported as unexpected. Import these from `strawberry` / `strawberry_django`
+  directly. `django_type` and `django_interface` are unaffected -- they are real
+  functions, and they are the ones that add behaviour.
+
+
+## v2.0.1 (2026-06-20)
+
+### Fixes
+
+- Remove deprecated filters
+
+
+## v2.0.0 (2026-06-20)
+
+### Breaking
+
+- Carry the provenance token on the request instead of the rekuest task.
+- `ChannelsContext` and `EnhancendChannelsHTTPRequest` were removed from
+  `kante.context`; use `WsContext` / `HttpContext` and `UniversalRequest`.
+- `Channel.listen()` yields a validated pydantic model rather than a raw dict, so
+  `message["type"]` must become `message.create` / `.update` / `.delete`.
+
+
+## v1.3.0 (2026-06-13)
+
+### Features
+
+- Federation reference resolution is batched through a per-request DataLoader.
+
+
+## v1.2.0 (2026-05-05)
+
+### Features
+
+- `kante.Schema` installs `DjangoOptimizerExtension` by default.
+
+
 ## v1.1.0 (2026-02-13)
 
 ### Features

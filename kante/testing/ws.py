@@ -1,6 +1,8 @@
+"""An ASGI test client for driving GraphQL subscriptions over a websocket."""
+
 import json
 import asyncio
-from typing import Any, AsyncGenerator, Callable, Dict, Optional
+from typing import Any, AsyncGenerator, Callable, Dict, Optional, cast
 from channels.testing import ApplicationCommunicator
 from types import TracebackType
 
@@ -131,7 +133,7 @@ class GraphQLWebSocketTestClient:
         if msg["type"] != "websocket.send":
             return None
         
-        return json.loads(msg["text"])
+        return cast(Dict[str, Any], json.loads(msg["text"]))
 
     async def receive_until(
         self,
@@ -168,6 +170,7 @@ class GraphQLWebSocketTestClient:
         await self.communicator.wait()
 
     async def __aenter__(self) -> "GraphQLWebSocketTestClient":
+        """Connect on entry."""
         await self.connect()
         return self
 
@@ -177,4 +180,5 @@ class GraphQLWebSocketTestClient:
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType]
     ) -> None:
+        """Disconnect on exit."""
         await self.disconnect()

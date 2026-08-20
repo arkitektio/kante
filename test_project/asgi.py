@@ -18,7 +18,7 @@ django_asgi_app = get_asgi_application()
 
 from .schema import schema  # noqa
 from .echo_consumer import EchoConsumer  # noqa
-from kante.path import re_dynamicpath
+from kante.path import re_dynamicpath  # noqa: E402
 
 additional_websocket_urlpatterns = [
     re_dynamicpath(r"ws/echo/$", EchoConsumer.as_asgi()),

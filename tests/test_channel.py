@@ -38,7 +38,7 @@ async def test_broadcast_payload_is_serializer_safe() -> None:
     message = RichChannelModel(
         id=uuid4(), created=datetime.datetime.now(), name="payload"
     )
-    await channel.abroadcast(message)
+    await channel.abroadcast(message, groups=["default"])
 
     received = await asyncio.wait_for(layer.receive(listener), timeout=2)
 

@@ -1,3 +1,5 @@
+"""A minimal permissive CORS middleware for the ASGI application."""
+
 from asgiref.typing import (
     ASGI3Application,
     Scope,
@@ -22,12 +24,16 @@ _MANAGED_HEADER_NAMES = frozenset(name for name, _ in _CORS_HEADERS)
 
 
 class CorsMiddleware:
+    """Answer preflights and attach permissive CORS headers to every response."""
+
     def __init__(self, app: ASGI3Application) -> None:
+        """Wrap ``app``."""
         self.app = app
 
     async def __call__(
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
+        """Handle one ASGI event stream, injecting CORS headers."""
         # 1. Handle Preflight (OPTIONS) requests
         if scope["type"] == "http" and scope["method"] == "OPTIONS":
             response_start: HTTPResponseStartEvent = {
