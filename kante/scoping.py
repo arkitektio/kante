@@ -134,11 +134,18 @@ def _has_inline_scope(info: Info) -> bool:
     Reads the field's own argument nodes off the GraphQL AST rather than going
     through ``info.selected_fields``, which would walk the entire selection
     subtree -- this runs on every prescoped list field of every request.
+
+    .. note::
+
+       strawberry 0.324 removed ``Info.field_nodes``. The graphql-core info it wraps
+       still carries them, so that is where they are read from now. This used to sit
+       behind a blanket ``except Exception: return False``, which turned the removal
+       into a silently-vanishing deprecation warning rather than a failure -- hence
+       the explicit lookup, and the test that exercises real AST nodes.
     """
-    try:
-        field_nodes = info.field_nodes
-    except Exception:  # pragma: no cover - defensive, older/other Info shapes
-        return False
+    field_nodes = getattr(info, "field_nodes", None)
+    if field_nodes is None:
+        field_nodes = getattr(getattr(info, "_raw_info", None), "field_nodes", None)
 
     for node in field_nodes or ():
         for argument in getattr(node, "arguments", ()) or ():

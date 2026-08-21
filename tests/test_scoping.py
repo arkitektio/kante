@@ -225,3 +225,49 @@ def test_prescope_does_not_warn_without_a_scope() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error", DeprecationWarning)
         OrganizationScoper().prescope(info, models.ScopedThing.objects.all())
+
+
+class _RawInfo:
+    """An ``Info`` shaped like strawberry 0.324's: field nodes only on the raw info.
+
+    ``Info.field_nodes`` was removed in 0.324. The shim above still sets it, so every
+    inline-scope test kept passing while the real thing silently stopped working --
+    the check sat behind a blanket ``except Exception: return False``. This is the
+    shape scoping actually meets in production.
+    """
+
+    def __init__(self, context: Any, field_nodes: Any) -> None:
+        self.context = context
+        self.selected_fields: Any = []
+        self.variable_values: Any = {}
+        self._raw_info = type("Raw", (), {"field_nodes": list(field_nodes)})()
+
+
+@pytest.mark.django_db
+def test_inline_scope_is_read_off_the_raw_graphql_info() -> None:
+    """The warning must fire on an Info that only carries nodes on `_raw_info`."""
+    mine = models.Organization.objects.create(slug="mine")
+    models.ScopedThing.objects.create(name="mine", organization=mine)
+
+    info = _RawInfo(
+        build_http_context(organization=mine),
+        [_node(_Arg("filters", [_object_field("scope")]))],
+    )
+
+    with pytest.warns(DeprecationWarning, match="scope"):
+        scoped = OrganizationScoper().prescope(info, models.ScopedThing.objects.all())
+
+    assert [t.name for t in scoped] == ["mine"]
+
+
+def test_the_graphql_info_still_carries_field_nodes() -> None:
+    """Fail loudly if graphql-core drops the attribute scoping actually depends on.
+
+    Asserting on strawberry's `Info` would not do: `_raw_info` stays declared as a
+    dataclass field whether or not the object behind it still has `field_nodes`, so
+    that check would pass while `_has_inline_scope` silently returned False again --
+    the exact failure this pair of tests exists to catch.
+    """
+    from graphql import GraphQLResolveInfo
+
+    assert "field_nodes" in GraphQLResolveInfo._fields

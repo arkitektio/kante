@@ -3,6 +3,21 @@
 
 ## Unreleased
 
+### Changed
+
+- **strawberry bumped to 0.324 and strawberry-django to 0.87** (from 0.312 / 0.82),
+  which also required `cross-web` 0.7 -- strawberry 0.324 needs `>=0.6`, and kante
+  pinned `==0.4.1` despite never importing it.
+  - `Info.field_nodes` was **removed** in 0.324. `kante.scoping` read it behind a
+    blanket `except Exception: return False`, so the inline-`filters.scope`
+    deprecation warning would have stopped firing silently -- queries stayed scoped
+    either way, so nothing leaked. The nodes are now read from the graphql-core info
+    strawberry wraps, and a test exercises that shape instead of a shim that always
+    defined `field_nodes`.
+  - Passing a `SchemaExtension` *instance* to `kante.Schema(extensions=[...])` is
+    deprecated by strawberry in favour of a zero-argument factory. Both are still
+    accepted and forwarded unchanged; the annotation now admits the factory form.
+
 ### Fixed
 
 - **`kante.Info` is now the context-typed `Info`.** `kante/__init__` re-exported
@@ -30,6 +45,24 @@
 
 ### Added
 
+- **`kante.unions`** -- discriminated input unions, previously carried by each
+  service by hand. GraphQL has no input unions, so a union arriving through an
+  argument is wired as one *merged* input: a discriminator plus every member's
+  fields, all optional. `@union_member` declares a member and attaches the
+  `@unionElementOf` directive a client generator reads; `@merged_input` fills an
+  empty class with the merge, deriving each field's type from the member that
+  declares it, computing the `(SCALE, BY_DIMENSION)` description prefix from the
+  members that read it, and generating a `to_pydantic` that dispatches through
+  `parse_union_member` -- so a parameter contradicting the discriminator is an
+  error naming both, never a silent drop. `union_member_types` returns the member
+  types for `Schema(types=[...])`, which nothing references and a schema that
+  omits them prunes silently.
+- **`kante.errors`** now also carries the prose helpers `describe_validation_error`,
+  `prose_errors` and `camel_field`: a pydantic `ValidationError` reaches the client
+  as one sentence rather than as a multi-line report naming pydantic's machinery.
+- `pydantic` is now a declared dependency. It was already required at runtime --
+  `kante.pydantic_input` aliases `strawberry.experimental.pydantic.input` -- but
+  went undeclared.
 - **`kante.scoping`** -- organization (tenant) scoping, previously copy-pasted
   into four services: `for_org`, `get_for_org`, `aget_for_org`,
   `organization_path`, `build_prescoped_queryset`, `build_prescoper`, and an

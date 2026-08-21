@@ -32,6 +32,17 @@ from .errors import (
     PermissionDenied,
     ValidationError,
     AuthenticationError,
+    camel_field,
+    describe_validation_error,
+    prose_errors,
+)
+from .unions import (
+    merged_input,
+    parse_union_member,
+    unionElementOf,
+    union_member,
+    union_member_types,
+    union_memberships,
 )
 from .schema import Schema
 
@@ -66,5 +77,14 @@ __all__ = [
     "PermissionDenied",
     "ValidationError",
     "AuthenticationError",
+    "camel_field",
+    "describe_validation_error",
+    "prose_errors",
+    "merged_input",
+    "parse_union_member",
+    "unionElementOf",
+    "union_member",
+    "union_member_types",
+    "union_memberships",
     "Schema",
 ]

@@ -1,7 +1,7 @@
 """kante's Schema: a federation schema with the Django optimizer installed."""
 
 import warnings
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable, cast
 from graphql import ExecutionContext
 import strawberry
 from strawberry.extensions import SchemaExtension
@@ -20,7 +20,9 @@ class Schema(strawberry.federation.Schema):
         subscription: type | None = None,
         directives: Iterable[type] = (),
         types: Iterable[type] = (),
-        extensions: Iterable[type[SchemaExtension] | SchemaExtension] = (),
+        extensions: Iterable[
+            type[SchemaExtension] | SchemaExtension | Callable[[], SchemaExtension]
+        ] = (),
         execution_context_class: type[ExecutionContext] | None = None,
         config: StrawberryConfig | None = None,
         scalar_overrides: dict[object, type | ScalarWrapper | ScalarDefinition] | None = None,
@@ -35,6 +37,9 @@ class Schema(strawberry.federation.Schema):
         # support strawberry-django projects, register it by default so users
         # are not silently exposed to N+1 across the whole API. Opt out with
         # ``enable_optimizer=False`` or by passing your own instance.
+        # An *instance* is still accepted, but strawberry 0.324 deprecates it in favour
+        # of a zero-argument factory, so a fresh extension is built per request. Both
+        # are forwarded unchanged: warning about it is strawberry's job, not kante's.
         extensions = list(extensions)
         if enable_optimizer and not any(
             ext is DjangoOptimizerExtension
@@ -65,7 +70,7 @@ class Schema(strawberry.federation.Schema):
             subscription=subscription,
             directives=directives,
             types=types,
-            extensions=extensions,
+            extensions=cast(Any, extensions),
             execution_context_class=execution_context_class,
             config=config,
             scalar_overrides=scalar_overrides,

@@ -138,7 +138,8 @@ that do something are:
 | `kante.context` | the request seam: user, client, organization, membership, provenance |
 | `kante.channel` | typed pub/sub over the channels layer |
 | `kante.scoping` | organization (tenant) scoping for querysets |
-| `kante.errors` | GraphQL errors carrying a machine-readable `code` |
+| `kante.errors` | GraphQL errors carrying a machine-readable `code`, and pydantic failures as prose |
+| `kante.unions` | discriminated input unions: one merged wire type, derived from its members |
 | `kante.router` | ASGI wiring for HTTP + websocket GraphQL |
 | `kante.testing` | ASGI test clients and request-context factories |
 
@@ -234,6 +235,58 @@ raise NotFound("No dataset with that id")
 Nothing is masked -- the message is the message you wrote. The addition is a code
 the client can branch on, so a deliberate error is distinguishable from an
 internal one.
+
+## Discriminated input unions
+
+GraphQL has no input unions, so a union arriving through an argument is wired as
+one *merged* input: a discriminator plus every member's fields, all optional.
+Write the members; the merged type is derived from them.
+
+```python
+from kante.unions import merged_input, union_member, union_member_types, unionElementOf
+
+class ScaleTransformModel(BaseModel):
+    kind: Literal["SCALE"] = "SCALE"
+    scale: list[float] = Field(description="The per-axis factors")
+    model_config = ConfigDict(extra="forbid")   # required: this is the strictness
+
+@union_member("TransformInput", key="SCALE")
+@kante.pydantic_input(ScaleTransformModel, description="The fields a SCALE member reads")
+class ScaleTransformInput:
+    kind: TransformKind
+    scale: list[float]
+
+@merged_input(members=[ScaleTransformInput, FieldTransformInput], noun="transformation")
+class TransformInput:
+    """One authored edge, discriminated by `kind`."""
+
+schema = kante.Schema(
+    query=Query,
+    types=union_member_types(TransformInput),   # nothing references these; omit them and
+    schema_directives=[unionElementOf],         # they vanish from the SDL silently
+)
+```
+
+The merged type carries every member's fields, optional, typed as the member
+types them, and described as `"(SCALE, BY_DIMENSION) ..."` -- the prefix computed
+from the members that read the field, so it cannot go stale. Its generated
+`to_pydantic()` returns the member model the discriminator selects, and a field
+that contradicts the kind is an error naming both rather than a silent drop:
+
+```
+A SCALE transformation does not read `field`: it reads `scale`.
+Drop it, or pick the kind that reads it.
+```
+
+Each member is published in the SDL under `@unionElementOf`, which is how a
+generated client rebuilds the tagged union -- turms emits
+`Annotated[A | B, Field(discriminator="kind")]` from it. That only works on an
+SDL-sourced schema: an introspected one carries no directive applications, and
+codegen degrades to a plain input with no warning.
+
+> **Descriptions live on the pydantic model.** Strawberry's pydantic integration
+> takes a field's description from `Field(description=...)` and ignores any
+> `strawberry.field(description=...)` in the member's class body -- silently.
 
 ## Testing
 
