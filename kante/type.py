@@ -39,7 +39,7 @@ from typing import (
 
 import strawberry
 import strawberry_django
-from django.db.models import Model
+from django.db.models import Model, QuerySet
 from strawberry.dataloader import DataLoader
 from strawberry.experimental import pydantic
 from strawberry.federation.schema_directives import (
@@ -85,7 +85,41 @@ DjangoTypeDecorator = Callable[
 ]
 
 
-def _build_reference_loader(model: Type[Model]) -> DataLoader[str, Optional[Model]]:
+REFERENCE_QUERYSET_SETTING = "KANTE_REFERENCE_QUERYSET"
+"""Django setting naming the ``(model, info) -> QuerySet`` that scopes references.
+
+A dotted path, e.g. ``"core.scoping.for_org"``. A service that keeps its own
+scoper (its own list of deliberately unscoped models, its own path depth) points
+this at it, so federation resolves references under the same rule as the
+service's single-object queries. Unset, it is :func:`kante.scoping.for_org`.
+"""
+
+ReferenceQueryset = Callable[[Type[Model], Info], "QuerySet[Any]"]
+
+
+def _reference_queryset() -> ReferenceQueryset:
+    """The callable that scopes a federated reference lookup to the request.
+
+    Looked up whenever a loader is built (once per request and model), so a
+    settings override takes effect without a restart. ``import_string`` is a
+    dictionary lookup after the first call.
+    """
+    from django.conf import settings
+    from django.utils.module_loading import import_string
+
+    path = getattr(settings, REFERENCE_QUERYSET_SETTING, None)
+    if path is None:
+        # Imported here: kante.scoping is optional for a service that never
+        # federates, and importing it eagerly would tie every kante type to it.
+        from kante.scoping import for_org
+
+        return for_org
+    return cast(ReferenceQueryset, import_string(path))
+
+
+def _build_reference_loader(
+    model: Type[Model], info: Info, type_cls: Optional[Type[object]] = None
+) -> DataLoader[str, Optional[Model]]:
     """Build a DataLoader that batches federation reference lookups by id.
 
     A federation gateway batches references into a single ``_entities`` query,
@@ -93,13 +127,28 @@ def _build_reference_loader(model: Type[Model]) -> DataLoader[str, Optional[Mode
     batching that is one DB query per referenced entity (N+1). This loader
     collapses all ids requested within one event-loop tick into a single
     ``filter(id__in=...)`` query.
+
+    The lookup is **scoped to the request**, exactly like any other single-object
+    access: it starts from the service's reference queryset (the request's
+    organization, see :data:`REFERENCE_QUERYSET_SETTING`) and then goes through
+    the type's own ``get_queryset`` when it has one. ``_entities`` takes ids
+    straight from the caller, so an unscoped lookup here would hand any
+    authenticated client any organization's rows. A row the request may not see
+    resolves to ``None``, the same as an id that does not exist.
+
+    A model with no path to an organization raises
+    :class:`kante.scoping.UnscopedModelError` rather than being served unscoped.
+    Declare it on the scoper, or pass ``federated=False``.
     """
 
     async def load_fn(keys: List[str]) -> List[Optional[Model]]:
-        manager = cast("Any", model._default_manager)
+        queryset = _reference_queryset()(model, info)
+        get_queryset = getattr(type_cls, "get_queryset", None)
+        if get_queryset is not None:
+            queryset = get_queryset(queryset, info)
         objects = {
             str(obj.id): obj
-            async for obj in manager.filter(id__in=list(keys))
+            async for obj in queryset.filter(id__in=list(keys))
         }
         return [objects.get(str(key)) for key in keys]
 
@@ -107,7 +156,7 @@ def _build_reference_loader(model: Type[Model]) -> DataLoader[str, Optional[Mode
 
 
 def _get_reference_loader(
-    context: Any, model: Type[Model]
+    info: Info, model: Type[Model], type_cls: Optional[Type[object]] = None
 ) -> DataLoader[str, Optional[Model]]:
     """Return a per-request reference loader, cached on the context.
 
@@ -115,14 +164,20 @@ def _get_reference_loader(
     batching to work, so it is stashed in the context's ``_loaders`` store. If
     the context cannot hold it (no ``_loaders``), fall back to an unbatched
     loader -- still correct, just no batching.
+
+    Caching per request is also what makes it safe for the loader to close over
+    ``info``: a request has one organization, and the loader never outlives it.
     """
-    store = getattr(context, "_loaders", None)
+    store = getattr(info.context, "_loaders", None)
     if store is None:
-        return _build_reference_loader(model)
-    key = f"federation_ref:{model._meta.label}"
+        return _build_reference_loader(model, info, type_cls)
+    # Per type, not per model: two types on one model may define different
+    # ``get_queryset``s, and the loader applies the one it was built with.
+    type_name = getattr(type_cls, "__name__", "")
+    key = f"federation_ref:{model._meta.label}:{type_name}"
     loader: Optional[DataLoader[str, Optional[Model]]] = store.get(key)
     if loader is None:
-        loader = _build_reference_loader(model)
+        loader = _build_reference_loader(model, info, type_cls)
         store[key] = loader
     return loader
 
@@ -157,7 +212,10 @@ def django_type(
 
     With ``federated=True`` (the default) the type gains an ``@key(fields: "id")``
     directive and, unless it defines one itself, a ``resolve_reference`` that
-    batches entity lookups through a per-request DataLoader.
+    batches entity lookups through a per-request DataLoader. That lookup is scoped
+    to the request's organization and goes through the type's ``get_queryset``
+    (see :func:`_build_reference_loader`); a model with no path to an organization
+    must be declared unscoped on the service's scoper, or not be federated.
     """
     if federated:
         directives = list(directives or [])
@@ -190,7 +248,7 @@ def django_type(
                 async def resolve_reference(
                     cls: Type[object], info: Info, id: str
                 ) -> object:
-                    loader = _get_reference_loader(info.context, model)
+                    loader = _get_reference_loader(info, model, cls)
                     return await loader.load(id)
 
                 setattr(cls, "resolve_reference", classmethod(resolve_reference))

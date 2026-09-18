@@ -137,3 +137,6 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Federation resolves `_entities` references through the service's own scoper.
+KANTE_REFERENCE_QUERYSET = "test_project.scoping.reference_queryset"
