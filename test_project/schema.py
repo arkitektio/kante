@@ -1,10 +1,12 @@
 import asyncio
-from typing import AsyncGenerator
+from typing import AsyncGenerator, AsyncIterator
 from kante.types import Info, require_ws
 import strawberry
+from strawberry.extensions import SchemaExtension
 from strawberry import ID, scalars
 from typing import cast
 from kante.channel import build_channel
+from kante.scoping import build_prescoped_queryset
 from pydantic import BaseModel
 import kante
 from test_app import models
@@ -27,6 +29,42 @@ class TestModel:
 
     id: ID
     name: str
+
+
+@kante.django_type(models.ScopedThing, federated=True)
+class ScopedThing:
+    """Owned by an organization, and hiding some of its rows on top of that."""
+
+    id: ID
+    name: str
+
+    @classmethod
+    def get_queryset(cls, queryset, info, **kwargs):  # noqa: ANN001, ANN003, ANN206
+        # The shape every mikro type uses: prescope to the organization, then the
+        # type's own rule. The reference loader has already scoped, so this filters
+        # on the same organization twice -- which must be harmless.
+        return build_prescoped_queryset(info, queryset).exclude(name="hidden")
+
+
+@kante.django_type(models.OrphanThing, federated=True)
+class OrphanThing:
+    """Federated, with no path to an organization and no declaration saying so."""
+
+    id: ID
+    name: str
+
+
+class TestOrganizationExtension(SchemaExtension):
+    """Stands in for authentikate: the request's organization, from a header."""
+
+    async def on_operation(self) -> AsyncIterator[None]:
+        context = self.execution_context.context
+        slug = getattr(context, "headers", {}).get("x-test-organization")
+        if slug:
+            context.request.set_organization(
+                await models.Organization.objects.aget(slug=slug)
+            )
+        yield
 
 
 str_channel = build_channel(StrChannelModel, "test_channel", default_groups=["default"])
@@ -83,4 +121,6 @@ schema = kante.Schema(
     query=Query,
     mutation=Mutation,
     subscription=Subscription,
+    types=[ScopedThing, OrphanThing],
+    extensions=[TestOrganizationExtension],
 )
