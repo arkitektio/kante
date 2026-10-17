@@ -24,6 +24,15 @@ your own :class:`OrganizationScoper`::
 The module-level :func:`for_org` / :func:`get_for_org` / :func:`aget_for_org` are
 bound to a default scoper (depth 3, no exceptions), which is what most services
 want.
+
+Within the organization, a request may see less still: a member the token scopes
+to a few shared objects sees only those. kante does not know how a service decides
+that -- it applies a *narrowing* step after the organization filter, everywhere a
+queryset leaves a scoper. Pass one as ``OrganizationScoper(narrow=...)``, or name
+it for every scoper of the process with the ``KANTE_OBJECT_SCOPE`` setting (a
+dotted path to a ``(queryset, info) -> QuerySet``). Federated references resolve
+through :func:`for_org` by default (``KANTE_REFERENCE_QUERYSET``), so they are
+narrowed by the same step.
 """
 
 import warnings
@@ -34,6 +43,15 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models as django_models
 
 from kante.types import Info
+
+OBJECT_SCOPE_SETTING = "KANTE_OBJECT_SCOPE"
+"""Django setting naming the ``(queryset, info) -> QuerySet`` that narrows a scoped queryset.
+
+A dotted path. Applied after the organization filter by every scoper that was not
+given its own ``narrow``. Unset, nothing is narrowed.
+"""
+
+Narrow = Callable[["django_models.QuerySet[Any]", Info], "django_models.QuerySet[Any]"]
 
 DEFAULT_MAX_PATH_DEPTH = 3
 """How many FK hops to follow looking for ``organization``.
@@ -108,6 +126,22 @@ def organization_path(
     return _find_org_path(model, max_depth, field_name)
 
 
+def _configured_narrow() -> Optional[Narrow]:
+    """The process-wide narrowing step (``KANTE_OBJECT_SCOPE``), if one is set.
+
+    Looked up on every call, like ``KANTE_REFERENCE_QUERYSET``: ``import_string``
+    is a dictionary lookup after the first call, and a settings override takes
+    effect without a restart.
+    """
+    from django.conf import settings
+    from django.utils.module_loading import import_string
+
+    path = getattr(settings, OBJECT_SCOPE_SETTING, None)
+    if path is None:
+        return None
+    return cast(Narrow, import_string(path))
+
+
 def field_argument(info: Info, name: str) -> Any:
     """Return the resolved value of an argument on the field being resolved.
 
@@ -175,11 +209,22 @@ class OrganizationScoper:
         unscoped_models: Collection[str] = (),
         max_path_depth: int = DEFAULT_MAX_PATH_DEPTH,
         organization_field: str = "organization",
+        narrow: Optional[Narrow] = None,
     ) -> None:
-        """Configure the tenancy escape hatch and how deep to search for it."""
+        """Configure the tenancy escape hatch, how deep to search for it, and
+        what narrows a queryset after it is scoped (``KANTE_OBJECT_SCOPE`` when
+        not given)."""
         self.unscoped_models = frozenset(unscoped_models)
         self.max_path_depth = max_path_depth
         self.organization_field = organization_field
+        self.narrow = narrow
+
+    def narrowed(
+        self, queryset: "django_models.QuerySet[Any]", info: Info
+    ) -> "django_models.QuerySet[Any]":
+        """Apply this scoper's narrowing step to an organization-scoped queryset."""
+        narrow = self.narrow or _configured_narrow()
+        return queryset if narrow is None else narrow(queryset, info)
 
     def path_for(self, model: Type[django_models.Model]) -> Optional[str]:
         """Return the lookup path from ``model`` to its organization, if any."""
@@ -199,8 +244,11 @@ class OrganizationScoper:
                     "the relation, raise max_path_depth, or declare it "
                     "explicitly on your OrganizationScoper."
                 )
-            return _manager(model).all()
-        return _manager(model).filter(**{path: info.context.request.organization})
+            return self.narrowed(_manager(model).all(), info)
+        return self.narrowed(
+            _manager(model).filter(**{path: info.context.request.organization}),
+            info,
+        )
 
     def get_for_org(
         self, model: Type[django_models.Model], info: Info, **kwargs: Any
@@ -256,8 +304,11 @@ class OrganizationScoper:
                 stacklevel=3,
             )
 
-        return queryset.filter(
-            **{field or self.organization_field: info.context.request.organization}
+        return self.narrowed(
+            queryset.filter(
+                **{field or self.organization_field: info.context.request.organization}
+            ),
+            info,
         )
 
     def prescoper(
@@ -326,6 +377,8 @@ def build_prescoper(
 
 __all__ = [
     "DEFAULT_MAX_PATH_DEPTH",
+    "OBJECT_SCOPE_SETTING",
+    "Narrow",
     "OrganizationScoper",
     "UnscopedModelError",
     "aget_for_org",

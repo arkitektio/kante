@@ -271,3 +271,66 @@ def test_the_graphql_info_still_carries_field_nodes() -> None:
     from graphql import GraphQLResolveInfo
 
     assert "field_nodes" in GraphQLResolveInfo._fields
+
+
+def _only(name: str) -> Any:
+    """A narrowing step that keeps the rows called ``name``."""
+
+    def narrow(queryset: Any, info: Any) -> Any:
+        return queryset.filter(name=name)
+
+    return narrow
+
+
+@pytest.mark.django_db
+def test_narrow_applies_after_the_organization_filter() -> None:
+    """A scoper's narrowing step sees only the organization's rows, and can only take more away."""
+    mine = models.Organization.objects.create(slug="mine")
+    theirs = models.Organization.objects.create(slug="theirs")
+    models.ScopedThing.objects.create(name="shared", organization=mine)
+    models.ScopedThing.objects.create(name="private", organization=mine)
+    models.ScopedThing.objects.create(name="shared", organization=theirs)
+    scoper = OrganizationScoper(narrow=_only("shared"))
+    info = _info_for(mine)
+
+    assert [t.organization.slug for t in scoper.for_org(models.ScopedThing, info)] == ["mine"]
+    assert [t.name for t in scoper.prescope(info, models.ScopedThing.objects.all())] == ["shared"]
+    assert scoper.get_for_org(models.ScopedThing, info, name="shared").organization == mine
+    with pytest.raises(models.ScopedThing.DoesNotExist):
+        scoper.get_for_org(models.ScopedThing, info, name="private")
+
+
+@pytest.mark.django_db
+def test_narrow_applies_to_a_declared_unscoped_model() -> None:
+    """Rows of no organization are narrowed too: the step decides, not the escape hatch."""
+    org = models.Organization.objects.create(slug="mine")
+    models.OrphanThing.objects.create(name="global")
+    scoper = OrganizationScoper(unscoped_models={"OrphanThing"}, narrow=lambda qs, info: qs.none())
+
+    assert list(scoper.for_org(models.OrphanThing, _info_for(org))) == []
+
+
+@pytest.mark.django_db
+def test_object_scope_setting_narrows_every_scoper(settings: Any) -> None:
+    """``KANTE_OBJECT_SCOPE`` narrows the module helpers and any scoper without its own step."""
+    org = models.Organization.objects.create(slug="mine")
+    models.ScopedThing.objects.create(name="shared", organization=org)
+    models.ScopedThing.objects.create(name="private", organization=org)
+    settings.KANTE_OBJECT_SCOPE = "tests.test_scoping._keep_shared"
+
+    assert [t.name for t in for_org(models.ScopedThing, _info_for(org))] == ["shared"]
+    assert [t.name for t in OrganizationScoper().for_org(models.ScopedThing, _info_for(org))] == ["shared"]
+    own = OrganizationScoper(narrow=_only("private"))
+    assert [t.name for t in own.for_org(models.ScopedThing, _info_for(org))] == ["private"]
+
+
+@pytest.mark.django_db
+def test_without_a_narrowing_step_nothing_is_narrowed() -> None:
+    """Unset, the scoped queryset is exactly the organization filter."""
+    org = models.Organization.objects.create(slug="mine")
+    queryset = for_org(models.ScopedThing, _info_for(org))
+
+    assert str(queryset.query) == str(models.ScopedThing.objects.filter(organization=org).query)
+
+
+_keep_shared = _only("shared")
