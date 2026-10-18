@@ -1,13 +1,17 @@
 """kante's Schema: a federation schema with the Django optimizer installed."""
 
 import warnings
-from typing import Any, Callable, Iterable, cast
-from graphql import ExecutionContext
+from typing import TYPE_CHECKING, Any, Callable, Iterable, cast
 import strawberry
 from strawberry.extensions import SchemaExtension
 from strawberry.schema.config import StrawberryConfig
 from strawberry.types.scalar import ScalarDefinition, ScalarWrapper
 from strawberry_django.optimizer import DjangoOptimizerExtension
+
+if TYPE_CHECKING:
+    # Only an annotation: graphql-core 3.3 has no ExecutionContext class to import,
+    # and kante runs on either (strawberry 0.324 supports both).
+    from graphql import ExecutionContext
 
 
 class Schema(strawberry.federation.Schema):
@@ -23,7 +27,7 @@ class Schema(strawberry.federation.Schema):
         extensions: Iterable[
             type[SchemaExtension] | SchemaExtension | Callable[[], SchemaExtension]
         ] = (),
-        execution_context_class: type[ExecutionContext] | None = None,
+        execution_context_class: "type[ExecutionContext] | None" = None,
         config: StrawberryConfig | None = None,
         scalar_overrides: dict[object, type | ScalarWrapper | ScalarDefinition] | None = None,
         schema_directives: Iterable[object] = (),
