@@ -10,7 +10,8 @@ is what fills them in.
 import datetime
 from strawberry.channels import ChannelsConsumer
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Mapping, Optional, Protocol
+from typing import Any, Literal, Protocol
+from collections.abc import Mapping
 from strawberry.http.temporal_response import TemporalResponse
 
 
@@ -131,7 +132,7 @@ class Provenance(Protocol):
         ...
 
     @property
-    def aud(self) -> List[str]:
+    def aud(self) -> list[str]:
         """The target services the token is scoped to."""
         ...
 
@@ -227,12 +228,12 @@ class UniversalRequest:
     unauthenticated request fails loudly rather than resolving as nobody.
     """
 
-    _extensions: Dict[str, Any]
-    _client: Optional[Client] = None
-    _user: Optional[User] = None
-    _provenance: Optional[Provenance] = None
-    _organization: Optional[Organization] = None
-    _membership: Optional[Membership] = None
+    _extensions: dict[str, Any]
+    _client: Client | None = None
+    _user: User | None = None
+    _provenance: Provenance | None = None
+    _organization: Organization | None = None
+    _membership: Membership | None = None
 
     @property
     def user(self) -> User:
@@ -323,13 +324,13 @@ class WsContext:
 
     request: UniversalRequest
     response: TemporalResponse
-    connection_params: Dict[str, Any]
+    connection_params: dict[str, Any]
     consumer: ChannelsConsumer
-    extensions: Optional[Dict[str, Any]] = None
+    extensions: dict[str, Any] | None = None
     type: Literal["ws"] = "ws"
     # Per-request store for batching DataLoaders (e.g. federation reference
     # resolution). Not slotted so downstream extensions can still stash state.
-    _loaders: Dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
+    _loaders: dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
 
 
 @dataclass
@@ -342,7 +343,7 @@ class HttpContext:
     type: Literal["http"] = "http"
     # Per-request store for batching DataLoaders (e.g. federation reference
     # resolution). Not slotted so downstream extensions can still stash state.
-    _loaders: Dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
+    _loaders: dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
 
 
 Context = HttpContext | WsContext

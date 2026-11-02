@@ -1,5 +1,5 @@
 import asyncio
-from typing import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from kante.types import Info, require_ws
 import strawberry
 from strawberry.extensions import SchemaExtension

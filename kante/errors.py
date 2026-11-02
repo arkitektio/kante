@@ -23,7 +23,7 @@ decorator keep the sentence a validator wrote and drop everything around it.
 """
 
 from collections.abc import Callable
-from typing import Any, Dict, Optional
+from typing import Any
 
 from graphql import GraphQLError
 from pydantic import ValidationError as PydanticValidationError
@@ -53,12 +53,12 @@ class KanteError(GraphQLError):
         self,
         message: str,
         *,
-        code: Optional[str] = None,
-        extensions: Optional[Dict[str, Any]] = None,
+        code: str | None = None,
+        extensions: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
         """Build the error, merging ``code`` into the GraphQL ``extensions``."""
-        merged: Dict[str, Any] = dict(extensions or {})
+        merged: dict[str, Any] = dict(extensions or {})
         merged.setdefault("code", code or type(self).code)
         super().__init__(message, extensions=merged, **kwargs)
 

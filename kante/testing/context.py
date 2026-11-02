@@ -16,7 +16,8 @@ stay independent of whichever models a service uses for users and organizations:
         return build_http_context(user=user, organization=org, token="test")
 """
 
-from typing import Any, Dict, Mapping, Optional
+from typing import Any
+from collections.abc import Mapping
 
 from strawberry.channels import ChannelsConsumer
 from strawberry.http.temporal_response import TemporalResponse
@@ -34,13 +35,13 @@ from kante.context import (
 
 
 def build_request(
-    user: Optional[User] = None,
-    organization: Optional[Organization] = None,
-    client: Optional[Client] = None,
-    membership: Optional[Membership] = None,
-    provenance: Optional[Provenance] = None,
-    token: Optional[str] = None,
-    extensions: Optional[Dict[str, Any]] = None,
+    user: User | None = None,
+    organization: Organization | None = None,
+    client: Client | None = None,
+    membership: Membership | None = None,
+    provenance: Provenance | None = None,
+    token: str | None = None,
+    extensions: dict[str, Any] | None = None,
 ) -> UniversalRequest:
     """Build a :class:`~kante.context.UniversalRequest` with the given principals.
 
@@ -51,7 +52,7 @@ def build_request(
     ``token`` is stored in the request's extensions under ``"token"``, matching
     what the authenticating strawberry extension puts there.
     """
-    resolved_extensions: Dict[str, Any] = dict(extensions or {})
+    resolved_extensions: dict[str, Any] = dict(extensions or {})
     if token is not None:
         resolved_extensions.setdefault("token", token)
 
@@ -66,15 +67,15 @@ def build_request(
 
 
 def build_http_context(
-    user: Optional[User] = None,
-    organization: Optional[Organization] = None,
-    client: Optional[Client] = None,
-    membership: Optional[Membership] = None,
-    provenance: Optional[Provenance] = None,
-    token: Optional[str] = None,
-    extensions: Optional[Dict[str, Any]] = None,
-    headers: Optional[Mapping[str, str]] = None,
-    response: Optional[TemporalResponse] = None,
+    user: User | None = None,
+    organization: Organization | None = None,
+    client: Client | None = None,
+    membership: Membership | None = None,
+    provenance: Provenance | None = None,
+    token: str | None = None,
+    extensions: dict[str, Any] | None = None,
+    headers: Mapping[str, str] | None = None,
+    response: TemporalResponse | None = None,
 ) -> HttpContext:
     """Build an :class:`~kante.context.HttpContext` for calling resolvers in tests.
 
@@ -83,7 +84,7 @@ def build_http_context(
     built here works both for direct resolver calls and for tests that go through
     an extension which re-reads the header.
     """
-    resolved_headers: Dict[str, str] = dict(headers or {})
+    resolved_headers: dict[str, str] = dict(headers or {})
     if token is not None:
         resolved_headers.setdefault("Authorization", f"Bearer {token}")
 
@@ -105,15 +106,15 @@ def build_http_context(
 
 def build_ws_context(
     consumer: ChannelsConsumer,
-    user: Optional[User] = None,
-    organization: Optional[Organization] = None,
-    client: Optional[Client] = None,
-    membership: Optional[Membership] = None,
-    provenance: Optional[Provenance] = None,
-    token: Optional[str] = None,
-    extensions: Optional[Dict[str, Any]] = None,
-    connection_params: Optional[Dict[str, Any]] = None,
-    response: Optional[TemporalResponse] = None,
+    user: User | None = None,
+    organization: Organization | None = None,
+    client: Client | None = None,
+    membership: Membership | None = None,
+    provenance: Provenance | None = None,
+    token: str | None = None,
+    extensions: dict[str, Any] | None = None,
+    connection_params: dict[str, Any] | None = None,
+    response: TemporalResponse | None = None,
 ) -> WsContext:
     """Build a :class:`~kante.context.WsContext` for testing subscriptions.
 

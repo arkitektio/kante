@@ -1,7 +1,7 @@
 """ASGI test clients for driving GraphQL over HTTP."""
 
 import json
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, cast
 from channels.testing import ApplicationCommunicator
 
 
@@ -18,7 +18,7 @@ class GraphQLHttpTestClient:
         self,
         application: Any,
         path: str = "/graphql",
-        headers: Optional[Dict[str, str]] = None
+        headers: dict[str, str] | None = None
     ) -> None:
         """
         Initialize the test client.
@@ -35,10 +35,10 @@ class GraphQLHttpTestClient:
     async def execute(
         self,
         query: str,
-        variables: Optional[Dict[str, Any]] = None,
-        operation_name: Optional[str] = None,
+        variables: dict[str, Any] | None = None,
+        operation_name: str | None = None,
         timeout: int = 5
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute a GraphQL query or mutation via HTTP.
 
@@ -54,7 +54,7 @@ class GraphQLHttpTestClient:
         Raises:
             AssertionError: If the HTTP response is not 200 OK or malformed.
         """
-        body: Dict[str, Any] = {"query": query}
+        body: dict[str, Any] = {"query": query}
         if variables is not None:
             body["variables"] = variables
         if operation_name is not None:
@@ -87,7 +87,7 @@ class GraphQLHttpTestClient:
         response_body = await communicator.receive_output(timeout=timeout)
         assert response_body["type"] == "http.response.body", f"Unexpected type: {response_body}"
 
-        return cast(Dict[str, Any], json.loads(response_body["body"]))
+        return cast(dict[str, Any], json.loads(response_body["body"]))
 
 
 
@@ -104,7 +104,7 @@ class HttpGetTestClient:
     def __init__(
         self,
         application: Any,
-        headers: Optional[Dict[str, str]] = None
+        headers: dict[str, str] | None = None
     ) -> None:
         """Bind the client to an ASGI application."""
         self.application = application
@@ -130,7 +130,7 @@ class HttpGetTestClient:
         Raises:
             AssertionError: If response type or status is unexpected.
         """
-        header_list: List[Tuple[bytes, bytes]] = [(b"accept", accept.encode())]
+        header_list: list[tuple[bytes, bytes]] = [(b"accept", accept.encode())]
         for k, v in self.headers.items():
             header_list.append((k.encode(), v.encode()))
 

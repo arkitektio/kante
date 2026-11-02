@@ -36,8 +36,9 @@ narrowed by the same step.
 """
 
 import warnings
-from functools import lru_cache
-from typing import Any, Callable, Collection, Optional, Type, cast
+from functools import lru_cache, cache
+from typing import Any, cast
+from collections.abc import Callable, Collection
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models as django_models
@@ -62,7 +63,7 @@ unscoped queryset.
 """
 
 
-def _manager(model: Type[django_models.Model]) -> "django_models.Manager[Any]":
+def _manager(model: type[django_models.Model]) -> "django_models.Manager[Any]":
     """Return the model's default manager.
 
     ``Model.objects`` is not declared on the ``Model`` base class as far as
@@ -82,8 +83,8 @@ class UnscopedModelError(LookupError):
 
 
 def _find_org_path(
-    model: Type[django_models.Model], depth: int, field_name: str
-) -> Optional[str]:
+    model: type[django_models.Model], depth: int, field_name: str
+) -> str | None:
     """Depth-first search for the ORM lookup path from ``model`` to its tenant."""
     try:
         field = model._meta.get_field(field_name)
@@ -104,7 +105,7 @@ def _find_org_path(
         if related_model is model or related_model is None:
             continue
         sub_path = _find_org_path(
-            cast(Type[django_models.Model], related_model), depth - 1, field_name
+            cast(type[django_models.Model], related_model), depth - 1, field_name
         )
         if sub_path:
             return f"{field.name}__{sub_path}"
@@ -112,12 +113,12 @@ def _find_org_path(
     return None
 
 
-@lru_cache(maxsize=None)
+@cache
 def organization_path(
-    model: Type[django_models.Model],
+    model: type[django_models.Model],
     max_depth: int = DEFAULT_MAX_PATH_DEPTH,
     field_name: str = "organization",
-) -> Optional[str]:
+) -> str | None:
     """Return the ORM lookup path from ``model`` to its organization, if any.
 
     Cached: the model graph does not change at runtime, and this walk is on the
@@ -126,7 +127,7 @@ def organization_path(
     return _find_org_path(model, max_depth, field_name)
 
 
-def _configured_narrow() -> Optional[Narrow]:
+def _configured_narrow() -> Narrow | None:
     """The process-wide narrowing step (``KANTE_OBJECT_SCOPE``), if one is set.
 
     Looked up on every call, like ``KANTE_REFERENCE_QUERYSET``: ``import_string``
@@ -209,7 +210,7 @@ class OrganizationScoper:
         unscoped_models: Collection[str] = (),
         max_path_depth: int = DEFAULT_MAX_PATH_DEPTH,
         organization_field: str = "organization",
-        narrow: Optional[Narrow] = None,
+        narrow: Narrow | None = None,
     ) -> None:
         """Configure the tenancy escape hatch, how deep to search for it, and
         what narrows a queryset after it is scoped (``KANTE_OBJECT_SCOPE`` when
@@ -226,12 +227,12 @@ class OrganizationScoper:
         narrow = self.narrow or _configured_narrow()
         return queryset if narrow is None else narrow(queryset, info)
 
-    def path_for(self, model: Type[django_models.Model]) -> Optional[str]:
+    def path_for(self, model: type[django_models.Model]) -> str | None:
         """Return the lookup path from ``model`` to its organization, if any."""
         return organization_path(model, self.max_path_depth, self.organization_field)
 
     def for_org(
-        self, model: Type[django_models.Model], info: Info
+        self, model: type[django_models.Model], info: Info
     ) -> "django_models.QuerySet[Any]":
         """Return ``model``'s queryset limited to the request's organization."""
         path = self.path_for(model)
@@ -251,13 +252,13 @@ class OrganizationScoper:
         )
 
     def get_for_org(
-        self, model: Type[django_models.Model], info: Info, **kwargs: Any
+        self, model: type[django_models.Model], info: Info, **kwargs: Any
     ) -> django_models.Model:
         """``Model.objects.get`` limited to the request's organization."""
         return cast(django_models.Model, self.for_org(model, info).get(**kwargs))
 
     async def aget_for_org(
-        self, model: Type[django_models.Model], info: Info, **kwargs: Any
+        self, model: type[django_models.Model], info: Info, **kwargs: Any
     ) -> django_models.Model:
         """Async ``Model.objects.aget`` limited to the request's organization."""
         return cast(
@@ -268,7 +269,7 @@ class OrganizationScoper:
         self,
         info: Info,
         queryset: "django_models.QuerySet[Any]",
-        field: Optional[str] = None,
+        field: str | None = None,
     ) -> "django_models.QuerySet[Any]":
         """Limit an already-built queryset to the request's organization.
 
@@ -312,7 +313,7 @@ class OrganizationScoper:
         )
 
     def prescoper(
-        self, field: Optional[str] = None
+        self, field: str | None = None
     ) -> Callable[["django_models.QuerySet[Any]", Info], "django_models.QuerySet[Any]"]:
         """Build a ``get_queryset`` callable that prescopes to the organization.
 
@@ -339,21 +340,21 @@ default_scoper = OrganizationScoper()
 
 
 def for_org(
-    model: Type[django_models.Model], info: Info
+    model: type[django_models.Model], info: Info
 ) -> "django_models.QuerySet[Any]":
     """Return ``model``'s queryset limited to the request's organization."""
     return default_scoper.for_org(model, info)
 
 
 def get_for_org(
-    model: Type[django_models.Model], info: Info, **kwargs: Any
+    model: type[django_models.Model], info: Info, **kwargs: Any
 ) -> django_models.Model:
     """``Model.objects.get`` limited to the request's organization."""
     return default_scoper.get_for_org(model, info, **kwargs)
 
 
 async def aget_for_org(
-    model: Type[django_models.Model], info: Info, **kwargs: Any
+    model: type[django_models.Model], info: Info, **kwargs: Any
 ) -> django_models.Model:
     """Async ``Model.objects.aget`` limited to the request's organization."""
     return await default_scoper.aget_for_org(model, info, **kwargs)

@@ -2,7 +2,8 @@
 
 import json
 import asyncio
-from typing import Any, AsyncGenerator, Callable, Dict, Optional, cast
+from typing import Any, cast
+from collections.abc import AsyncGenerator, Callable
 from channels.testing import ApplicationCommunicator
 from types import TracebackType
 
@@ -24,7 +25,7 @@ class GraphQLWebSocketTestClient:
         application: Any,
         path: str = "/graphql",
         protocol: str = "graphql-ws",
-        connection_params: Optional[Dict[str, Any]] = None
+        connection_params: dict[str, Any] | None = None
     ) -> None:
         """
         Initialize the WebSocket client.
@@ -75,8 +76,8 @@ class GraphQLWebSocketTestClient:
         query: str,
         operation_id: str = "1",
         timeout: int = 5,
-        max_messages: Optional[int] = None
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+        max_messages: int | None = None
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Start a GraphQL subscription and yield incoming data messages.
 
@@ -102,7 +103,7 @@ class GraphQLWebSocketTestClient:
         while True:
             try:
                 msg = await asyncio.wait_for(self.communicator.receive_output(), timeout=timeout)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 break
 
             if msg["type"] != "websocket.send":
@@ -119,7 +120,7 @@ class GraphQLWebSocketTestClient:
             elif msg_type in ("complete", "error"):
                 break
 
-    async def receive(self, timeout: int = 2) -> Optional[Dict[str, Any]]:
+    async def receive(self, timeout: int = 2) -> dict[str, Any] | None:
         """
         Wait for and return a single WebSocket message.
 
@@ -133,13 +134,13 @@ class GraphQLWebSocketTestClient:
         if msg["type"] != "websocket.send":
             return None
         
-        return cast(Dict[str, Any], json.loads(msg["text"]))
+        return cast(dict[str, Any], json.loads(msg["text"]))
 
     async def receive_until(
         self,
-        match_fn: Callable[[Dict[str, Any]], bool],
+        match_fn: Callable[[dict[str, Any]], bool],
         timeout: int = 5
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Receive messages until a message matching `match_fn` is found or timeout occurs.
 
@@ -159,7 +160,7 @@ class GraphQLWebSocketTestClient:
                 msg = await self.receive(timeout=1)
                 if msg and match_fn(msg):
                     return msg
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
         raise TimeoutError("No matching message received within timeout.")
 
@@ -176,9 +177,9 @@ class GraphQLWebSocketTestClient:
 
     async def __aexit__(
         self,
-        exc_type: Optional[type],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType]
+        exc_type: type | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None
     ) -> None:
         """Disconnect on exit."""
         await self.disconnect()

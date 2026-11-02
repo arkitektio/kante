@@ -23,15 +23,10 @@ import logging
 import warnings
 from typing import (
     Any,
-    AsyncGenerator,
     Generic,
-    List,
-    Optional,
-    Sequence,
-    Type,
     TypeVar,
-    Union,
 )
+from collections.abc import AsyncGenerator, Sequence
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -67,9 +62,9 @@ class CRUDSignal(BaseModel):
         channel.broadcast(CRUDSignal(create=instance.id), groups=[room])
     """
 
-    create: Optional[int] = None
-    update: Optional[int] = None
-    delete: Optional[int] = None
+    create: int | None = None
+    update: int | None = None
+    delete: int | None = None
 
 
 def get_real_channel_layer() -> ChannelsLayer:
@@ -80,14 +75,14 @@ def get_real_channel_layer() -> ChannelsLayer:
     return channel_layer  # type: ignore[no-any-return]
 
 
-def _organization_id(org: Union[int, str, Organization]) -> str:
+def _organization_id(org: int | str | Organization) -> str:
     """Normalize an organization (or its id) to the id used in a room name."""
     if isinstance(org, (int, str)):
         return str(org)
     return str(org.id)
 
 
-def org_group(prefix: str, org: Union[int, str, Organization], sub: Optional[object] = None) -> str:
+def org_group(prefix: str, org: int | str | Organization, sub: object | None = None) -> str:
     """Build a tenant-scoped room name.
 
     ``org`` may be an :class:`~kante.context.Organization` or a bare id::
@@ -116,9 +111,9 @@ class Channel(Generic[T]):
 
     def __init__(
         self,
-        model: Type[T],
-        name: Optional[str] = None,
-        default_groups: Optional[Sequence[str]] = None,
+        model: type[T],
+        name: str | None = None,
+        default_groups: Sequence[str] | None = None,
     ) -> None:
         """Bind ``model`` to a channel-layer message type."""
         self.model = model
@@ -126,11 +121,11 @@ class Channel(Generic[T]):
         # Precomputed once so broadcast/listen don't rebuild it per call and so
         # both sides share a single source of truth for the message type.
         self.message_type = f"channel.{self.name}"
-        self.default_groups: Optional[List[str]] = (
+        self.default_groups: list[str] | None = (
             list(default_groups) if default_groups is not None else None
         )
 
-    def org_group(self, org: Union[int, str, Organization], sub: Optional[object] = None) -> str:
+    def org_group(self, org: int | str | Organization, sub: object | None = None) -> str:
         """Build a tenant-scoped room name for this channel.
 
         Call this on **both** sides -- in the signal handler that broadcasts and
@@ -155,7 +150,7 @@ class Channel(Generic[T]):
         """
         return org_group(self.name, org, sub)
 
-    def _resolve_groups(self, groups: Optional[Sequence[str]], caller: str) -> List[str]:
+    def _resolve_groups(self, groups: Sequence[str] | None, caller: str) -> list[str]:
         """Return the rooms to use, warning if the legacy global default applies."""
         if groups is not None:
             return list(groups)
@@ -173,7 +168,7 @@ class Channel(Generic[T]):
         )
         return list(LEGACY_DEFAULT_GROUPS)
 
-    async def abroadcast(self, message: T, groups: Optional[Sequence[str]] = None) -> None:
+    async def abroadcast(self, message: T, groups: Sequence[str] | None = None) -> None:
         """Broadcast a validated model instance to groups (async-native).
 
         Use this from async code (resolvers, subscriptions, any running event
@@ -202,7 +197,7 @@ class Channel(Generic[T]):
             *(channel_layer.group_send(group, payload) for group in resolved)
         )
 
-    def broadcast(self, message: T, groups: Optional[Sequence[str]] = None) -> None:
+    def broadcast(self, message: T, groups: Sequence[str] | None = None) -> None:
         """Broadcast a validated model instance to groups (sync wrapper).
 
         Performance/correctness: this bridges to the event loop exactly once via
@@ -214,7 +209,7 @@ class Channel(Generic[T]):
         async_to_sync(self.abroadcast)(message, resolved)
 
     def broadcast_on_commit(
-        self, message: T, groups: Optional[Sequence[str]] = None
+        self, message: T, groups: Sequence[str] | None = None
     ) -> None:
         """Broadcast once the surrounding transaction commits.
 
@@ -232,9 +227,9 @@ class Channel(Generic[T]):
 
     async def listen(
         self,
-        context: Union[Info, WsContext],
-        groups: Optional[Sequence[str]] = None,
-        timeout: Optional[float] = None,
+        context: Info | WsContext,
+        groups: Sequence[str] | None = None,
+        timeout: float | None = None,
     ) -> AsyncGenerator[T, None]:
         """Async generator that yields deserialized model messages.
 
@@ -269,7 +264,7 @@ class Channel(Generic[T]):
                     continue  # Optionally re-raise or yield raw here
 
 
-def _as_ws_context(context: Union[Info, WsContext, Any]) -> WsContext:
+def _as_ws_context(context: Info | WsContext | Any) -> WsContext:
     """Accept either an ``Info`` or a ``WsContext`` and return the ``WsContext``."""
     if isinstance(context, WsContext):
         return context
@@ -285,9 +280,9 @@ def _as_ws_context(context: Union[Info, WsContext, Any]) -> WsContext:
 
 
 def build_channel(
-    model: Type[T],
-    name: Optional[str] = None,
-    default_groups: Optional[Sequence[str]] = None,
+    model: type[T],
+    name: str | None = None,
+    default_groups: Sequence[str] | None = None,
 ) -> Channel[T]:
     """Build a channel with the given model and optional name."""
     return Channel(model, name, default_groups=default_groups)

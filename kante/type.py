@@ -27,15 +27,10 @@
 from typing import (
     Any,
     cast,
-    Callable,
-    List,
     Literal,
-    Optional,
-    Sequence,
-    Type,
     TypeVar,
-    Union,
 )
+from collections.abc import Callable, Sequence
 
 import strawberry
 import strawberry_django
@@ -56,6 +51,7 @@ from strawberry_django.utils.typing import (
 from strawberry_django import filters
 from strawberry_django import filter_field as sfilter_field
 from strawberry_django import input as sdjango_input
+import builtins
 
 
 filter_type = filters.filter_type
@@ -80,8 +76,8 @@ django_field = strawberry_django.field
 T = TypeVar("T", bound=object)
 
 DjangoTypeDecorator = Callable[
-    [Type[T]],
-    Type[T],
+    [builtins.type[T]],
+    builtins.type[T],
 ]
 
 
@@ -94,7 +90,7 @@ this at it, so federation resolves references under the same rule as the
 service's single-object queries. Unset, it is :func:`kante.scoping.for_org`.
 """
 
-ReferenceQueryset = Callable[[Type[Model], Info], "QuerySet[Any]"]
+ReferenceQueryset = Callable[[builtins.type[Model], Info], "QuerySet[Any]"]
 
 
 def _reference_queryset() -> ReferenceQueryset:
@@ -118,8 +114,8 @@ def _reference_queryset() -> ReferenceQueryset:
 
 
 def _build_reference_loader(
-    model: Type[Model], info: Info, type_cls: Optional[Type[object]] = None
-) -> DataLoader[str, Optional[Model]]:
+    model: builtins.type[Model], info: Info, type_cls: builtins.type[object] | None = None
+) -> DataLoader[str, Model | None]:
     """Build a DataLoader that batches federation reference lookups by id.
 
     A federation gateway batches references into a single ``_entities`` query,
@@ -141,7 +137,7 @@ def _build_reference_loader(
     Declare it on the scoper, or pass ``federated=False``.
     """
 
-    async def load_fn(keys: List[str]) -> List[Optional[Model]]:
+    async def load_fn(keys: list[str]) -> list[Model | None]:
         queryset = _reference_queryset()(model, info)
         get_queryset = getattr(type_cls, "get_queryset", None)
         if get_queryset is not None:
@@ -156,8 +152,8 @@ def _build_reference_loader(
 
 
 def _get_reference_loader(
-    info: Info, model: Type[Model], type_cls: Optional[Type[object]] = None
-) -> DataLoader[str, Optional[Model]]:
+    info: Info, model: builtins.type[Model], type_cls: builtins.type[object] | None = None
+) -> DataLoader[str, Model | None]:
     """Return a per-request reference loader, cached on the context.
 
     The loader must be shared across the representations of a single request for
@@ -175,7 +171,7 @@ def _get_reference_loader(
     # ``get_queryset``s, and the loader applies the one it was built with.
     type_name = getattr(type_cls, "__name__", "")
     key = f"federation_ref:{model._meta.label}:{type_name}"
-    loader: Optional[DataLoader[str, Optional[Model]]] = store.get(key)
+    loader: DataLoader[str, Model | None] | None = store.get(key)
     if loader is None:
         loader = _build_reference_loader(model, info, type_cls)
         store[key] = loader
@@ -183,30 +179,30 @@ def _get_reference_loader(
 
 
 def django_type(
-    model: Type[Model],
-    name: Optional[str] = None,
-    field_cls: Type[StrawberryDjangoField] = StrawberryDjangoField,
+    model: builtins.type[Model],
+    name: str | None = None,
+    field_cls: builtins.type[StrawberryDjangoField] = StrawberryDjangoField,
     is_input: bool = False,
     is_interface: bool = False,
-    is_filter: Union[Literal["lookups"], bool] = False,
-    description: Optional[str] = None,
-    directives: Optional[Sequence[object]] = (),
+    is_filter: Literal["lookups"] | bool = False,
+    description: str | None = None,
+    directives: Sequence[object] | None = (),
     extend: bool = False,
-    filters: Optional[Type[object]] = None,
-    order: Optional[Type[object]] = None,
-    ordering: Optional[Type[object]] = None,
+    filters: builtins.type[object] | None = None,
+    order: builtins.type[object] | None = None,
+    ordering: builtins.type[object] | None = None,
     pagination: bool = False,
-    only: Optional[TypeOrSequence[str]] = None,
-    select_related: Optional[TypeOrSequence[str]] = None,
-    prefetch_related: Optional[TypeOrSequence[PrefetchType]] = None,
-    annotate: Optional[TypeOrMapping[AnnotateType]] = None,
+    only: TypeOrSequence[str] | None = None,
+    select_related: TypeOrSequence[str] | None = None,
+    prefetch_related: TypeOrSequence[PrefetchType] | None = None,
+    annotate: TypeOrMapping[AnnotateType] | None = None,
     disable_optimization: bool = False,
-    fields: Optional[Union[list[str], Literal["__all__"]]] = None,
-    exclude: Optional[list[str]] = None,
+    fields: list[str] | Literal["__all__"] | None = None,
+    exclude: list[str] | None = None,
     federated: bool = True,
 ) -> Callable[
-    [Type[T]],
-    Type[T],
+    [builtins.type[T]],
+    builtins.type[T],
 ]:
     """Map a Django model onto a strawberry type, with federation support.
 
@@ -223,7 +219,7 @@ def django_type(
         # field-set literal that scalar wraps.
         directives.append(Key(fields=cast(Any, "id")))
 
-    def wrapper(cls: Type[T]) -> Type[T]:
+    def wrapper(cls: builtins.type[T]) -> builtins.type[T]:
         """A decorator to create a Django type with federation support."""
 
         if federated:
@@ -246,7 +242,7 @@ def django_type(
                 # Add a default resolve_reference that batches lookups by id via
                 # a per-request DataLoader, avoiding N+1 across federated joins.
                 async def resolve_reference(
-                    cls: Type[object], info: Info, id: str
+                    cls: builtins.type[object], info: Info, id: str
                 ) -> object:
                     loader = _get_reference_loader(info, model, cls)
                     return await loader.load(id)
@@ -280,15 +276,15 @@ def django_type(
 
 
 def django_interface(
-    model: Type[Model],
-    name: Optional[str] = None,
-    field_cls: Type[StrawberryDjangoField] = StrawberryDjangoField,
-    description: Optional[str] = None,
-    directives: Optional[Sequence[object]] = (),
-) -> Callable[[Type[T]], Type[T]]:
+    model: builtins.type[Model],
+    name: str | None = None,
+    field_cls: builtins.type[StrawberryDjangoField] = StrawberryDjangoField,
+    description: str | None = None,
+    directives: Sequence[object] | None = (),
+) -> Callable[[builtins.type[T]], builtins.type[T]]:
     """Decorator to create a Django interface type."""
 
-    def wrapper(cls: Type[T]) -> Type[T]:
+    def wrapper(cls: builtins.type[T]) -> builtins.type[T]:
         """A decorator to create a Django interface type."""
         return strawberry_django.interface(
             model,

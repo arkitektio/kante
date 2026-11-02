@@ -1,7 +1,8 @@
 """kante's Schema: a federation schema with the Django optimizer installed."""
 
 import warnings
-from typing import TYPE_CHECKING, Any, Callable, Iterable, cast
+from typing import TYPE_CHECKING, Any, cast
+from collections.abc import Callable, Iterable
 import strawberry
 from strawberry.extensions import SchemaExtension
 from strawberry.schema.config import StrawberryConfig

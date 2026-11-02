@@ -1,7 +1,7 @@
 """Test the GraphQL WebSocket client."""
 
 from contextlib import contextmanager
-from typing import Iterator
+from collections.abc import Iterator
 from uuid import uuid4
 from unittest.mock import patch
 import pytest
