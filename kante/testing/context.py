@@ -16,8 +16,8 @@ stay independent of whichever models a service uses for users and organizations:
         return build_http_context(user=user, organization=org, token="test")
 """
 
-from typing import Any
 from collections.abc import Mapping
+from typing import Any
 
 from strawberry.channels import ChannelsConsumer
 from strawberry.http.temporal_response import TemporalResponse

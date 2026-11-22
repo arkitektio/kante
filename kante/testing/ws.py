@@ -1,19 +1,20 @@
 """An ASGI test client for driving GraphQL subscriptions over a websocket."""
 
-import json
 import asyncio
-from typing import Any, cast
+import json
 from collections.abc import AsyncGenerator, Callable
-from channels.testing import ApplicationCommunicator
 from types import TracebackType
+from typing import Any, cast
+
+from channels.testing import ApplicationCommunicator
 
 
 class GraphQLWebSocketTestClient:
     """
     A test client for executing GraphQL subscriptions over WebSocket using the `graphql-ws` protocol.
-    
+
     Supports connection initialization with payload, sending subscriptions, and streaming responses.
-    
+
     Usage:
         async with GraphQLWebSocketTestClient(app, connection_params={"authToken": "abc"}) as client:
             async for msg in client.subscribe("subscription { time }", max_messages=1):
@@ -25,7 +26,7 @@ class GraphQLWebSocketTestClient:
         application: Any,
         path: str = "/graphql",
         protocol: str = "graphql-ws",
-        connection_params: dict[str, Any] | None = None
+        connection_params: dict[str, Any] | None = None,
     ) -> None:
         """
         Initialize the WebSocket client.
@@ -40,12 +41,15 @@ class GraphQLWebSocketTestClient:
         self.path = path
         self.protocol = protocol
         self.connection_params = connection_params or {}
-        self.communicator = ApplicationCommunicator(application, {
-            "type": "websocket",
-            "path": path,
-            "headers": [(b"sec-websocket-protocol", protocol.encode())],
-            "subprotocols": [protocol],
-        })
+        self.communicator = ApplicationCommunicator(
+            application,
+            {
+                "type": "websocket",
+                "path": path,
+                "headers": [(b"sec-websocket-protocol", protocol.encode())],
+                "subprotocols": [protocol],
+            },
+        )
         self.connected = False
 
     async def connect(self) -> None:
@@ -58,13 +62,14 @@ class GraphQLWebSocketTestClient:
         assert response["type"] == "websocket.accept"
         self.connected = True
 
-        await self.communicator.send_input({
-            "type": "websocket.receive",
-            "text": json.dumps({
-                "type": "connection_init",
-                "payload": self.connection_params
-            })
-        })
+        await self.communicator.send_input(
+            {
+                "type": "websocket.receive",
+                "text": json.dumps(
+                    {"type": "connection_init", "payload": self.connection_params}
+                ),
+            }
+        )
 
         ack = await self.communicator.receive_output(timeout=2)
         assert ack["type"] == "websocket.send"
@@ -76,7 +81,7 @@ class GraphQLWebSocketTestClient:
         query: str,
         operation_id: str = "1",
         timeout: int = 5,
-        max_messages: int | None = None
+        max_messages: int | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Start a GraphQL subscription and yield incoming data messages.
@@ -90,19 +95,21 @@ class GraphQLWebSocketTestClient:
         Yields:
             Incoming subscription data messages as dictionaries.
         """
-        await self.communicator.send_input({
-            "type": "websocket.receive",
-            "text": json.dumps({
-                "id": operation_id,
-                "type": "start",
-                "payload": {"query": query}
-            })
-        })
+        await self.communicator.send_input(
+            {
+                "type": "websocket.receive",
+                "text": json.dumps(
+                    {"id": operation_id, "type": "start", "payload": {"query": query}}
+                ),
+            }
+        )
 
         received_count = 0
         while True:
             try:
-                msg = await asyncio.wait_for(self.communicator.receive_output(), timeout=timeout)
+                msg = await asyncio.wait_for(
+                    self.communicator.receive_output(), timeout=timeout
+                )
             except TimeoutError:
                 break
 
@@ -133,13 +140,11 @@ class GraphQLWebSocketTestClient:
         msg = await self.communicator.receive_output(timeout=timeout)
         if msg["type"] != "websocket.send":
             return None
-        
+
         return cast(dict[str, Any], json.loads(msg["text"]))
 
     async def receive_until(
-        self,
-        match_fn: Callable[[dict[str, Any]], bool],
-        timeout: int = 5
+        self, match_fn: Callable[[dict[str, Any]], bool], timeout: int = 5
     ) -> dict[str, Any]:
         """
         Receive messages until a message matching `match_fn` is found or timeout occurs.
@@ -179,7 +184,7 @@ class GraphQLWebSocketTestClient:
         self,
         exc_type: type | None,
         exc_val: BaseException | None,
-        exc_tb: TracebackType | None
+        exc_tb: TracebackType | None,
     ) -> None:
         """Disconnect on exit."""
         await self.disconnect()

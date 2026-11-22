@@ -24,13 +24,14 @@
    ``resolve_reference``) and :func:`django_interface`.
 """
 
+import builtins
+from collections.abc import Callable, Sequence
 from typing import (
     Any,
-    cast,
     Literal,
     TypeVar,
+    cast,
 )
-from collections.abc import Callable, Sequence
 
 import strawberry
 import strawberry_django
@@ -41,6 +42,9 @@ from strawberry.federation.schema_directives import (
     Key,
 )
 from strawberry.types import Info
+from strawberry_django import filter_field as sfilter_field
+from strawberry_django import filters
+from strawberry_django import input as sdjango_input
 from strawberry_django.fields.field import StrawberryDjangoField
 from strawberry_django.utils.typing import (
     AnnotateType,
@@ -48,11 +52,6 @@ from strawberry_django.utils.typing import (
     TypeOrMapping,
     TypeOrSequence,
 )
-from strawberry_django import filters
-from strawberry_django import filter_field as sfilter_field
-from strawberry_django import input as sdjango_input
-import builtins
-
 
 filter_type = filters.filter_type
 filter_field = sfilter_field
@@ -114,7 +113,9 @@ def _reference_queryset() -> ReferenceQueryset:
 
 
 def _build_reference_loader(
-    model: builtins.type[Model], info: Info, type_cls: builtins.type[object] | None = None
+    model: builtins.type[Model],
+    info: Info,
+    type_cls: builtins.type[object] | None = None,
 ) -> DataLoader[str, Model | None]:
     """Build a DataLoader that batches federation reference lookups by id.
 
@@ -142,17 +143,16 @@ def _build_reference_loader(
         get_queryset = getattr(type_cls, "get_queryset", None)
         if get_queryset is not None:
             queryset = get_queryset(queryset, info)
-        objects = {
-            str(obj.id): obj
-            async for obj in queryset.filter(id__in=list(keys))
-        }
+        objects = {str(obj.id): obj async for obj in queryset.filter(id__in=list(keys))}
         return [objects.get(str(key)) for key in keys]
 
     return DataLoader(load_fn=load_fn)
 
 
 def _get_reference_loader(
-    info: Info, model: builtins.type[Model], type_cls: builtins.type[object] | None = None
+    info: Info,
+    model: builtins.type[Model],
+    type_cls: builtins.type[object] | None = None,
 ) -> DataLoader[str, Model | None]:
     """Return a per-request reference loader, cached on the context.
 
@@ -247,7 +247,9 @@ def django_type(
                     loader = _get_reference_loader(info, model, cls)
                     return await loader.load(id)
 
-                setattr(cls, "resolve_reference", classmethod(resolve_reference))
+                setattr(  # noqa: B010 -- cls is typed type[object]; the hook is new on it
+                    cls, "resolve_reference", classmethod(resolve_reference)
+                )
 
         return strawberry_django.type(
             model,

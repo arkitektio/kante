@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 """
 ASGI config for mikro_server project.
 
@@ -13,18 +6,11 @@ It exposes the ASGI callable as a module-level variable named ``application``.
 For more information on this file, see
 https://docs.djangoproject.com/en/4.2/howto/deployment/asgi/
 """
+
 from __future__ import annotations
+
 from typing import Any, cast
 
-
-from django.urls import URLPattern
-from channels.routing import ProtocolTypeRouter, URLRouter
-from kante.consumers import KanteHTTPConsumer, KanteWsConsumer
-from kante.middleware.cors import CorsMiddleware
-
-from django.core.handlers.asgi import ASGIHandler
-from strawberry import Schema
-from .path import re_dynamicpath, dynamicpath
 from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
@@ -33,49 +19,53 @@ from asgiref.typing import (
     HTTPResponseStartEvent,
     Scope,
 )
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.core.handlers.asgi import ASGIHandler
+from django.urls import URLPattern
+from strawberry import Schema
+
+from kante.consumers import KanteHTTPConsumer, KanteWsConsumer
+from kante.middleware.cors import CorsMiddleware
+
+from .path import dynamicpath, re_dynamicpath
 
 
 def router(
-    schema: Schema, 
-    django_asgi_app: ASGIHandler | None = None, 
-    additional_websocket_urlpatterns: list[URLPattern] | None = None,  
-    graphql_url_patterns: list[str] | None  = None, 
-    schema_path: str | None = None
-    
-    
-    ) -> ASGI3Application:
-   
+    schema: Schema,
+    django_asgi_app: ASGIHandler | None = None,
+    additional_websocket_urlpatterns: list[URLPattern] | None = None,
+    graphql_url_patterns: list[str] | None = None,
+    schema_path: str | None = None,
+) -> ASGI3Application:
     """
     ASGI router for the Kante framework.
-    
+
     This function sets up the ASGI application to handle both HTTP and WebSocket
     requests. It uses the KanteHTTPConsumer for HTTP requests and the KanteWsConsumer
     for WebSocket requests. The router also applies CORS middleware to the HTTP
     consumer and the WebSocket consumer.
-    
+
     Args:
         django_asgi_app (ASGIHandler): The Django ASGI application (with urls)
         schema (Schema): The Strawberry GraphQL schema.
         additional_websocket_urlpatterns (list[URLPattern], optional): Additional
             WebSocket URL patterns to include. Defaults to None.
-            
+
     Returns:
         ProtocolTypeRouter: The ASGI application router.
-        
-    
-    
+
+
+
     """
-    
+
     graphql_url_patterns = graphql_url_patterns or [r"^graphql", r"^graphql/"]
-    
-    
+
     gql_http_consumer = KanteHTTPConsumer.as_asgi(schema=schema)
     gql_ws_consumer = KanteWsConsumer.as_asgi(schema=schema)
-    
-    
+
     # Performance: the SDL is immutable at runtime but ``as_str()`` walks the
     # whole type graph, so render it once here instead of on every request.
-    schema_content = schema.as_str().encode('utf-8')
+    schema_content = schema.as_str().encode("utf-8")
     schema_content_length = str(len(schema_content)).encode()
 
     async def graphql_schema(
@@ -85,54 +75,47 @@ def router(
         await receive()
 
         response_start: HTTPResponseStartEvent = {
-            'type': 'http.response.start',
-            'status': 200,
-            'headers': [
-                (b'content-type', b'text/plain'),
-                (b'content-length', schema_content_length),
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [
+                (b"content-type", b"text/plain"),
+                (b"content-length", schema_content_length),
             ],
-            'trailers': False,
+            "trailers": False,
         }
         await send(response_start)
 
         response_body: HTTPResponseBodyEvent = {
-            'type': 'http.response.body',
-            'body': schema_content,
-            'more_body': False,
+            "type": "http.response.body",
+            "body": schema_content,
+            "more_body": False,
         }
         await send(response_body)
 
-    
     http_urlpatterns = [
-        re_dynamicpath(graphql_url_pattern, gql_http_consumer) for graphql_url_pattern in graphql_url_patterns
+        re_dynamicpath(graphql_url_pattern, gql_http_consumer)
+        for graphql_url_pattern in graphql_url_patterns
     ]
-    
+
     if schema_path:
         http_urlpatterns.append(dynamicpath(schema_path, graphql_schema))
-    
+
     if django_asgi_app:
         http_urlpatterns.extend([re_dynamicpath(r"^", django_asgi_app)])
-    
-    
-    
+
     websocket_urlpatterns = [
-        re_dynamicpath(graphql_url_pattern, gql_ws_consumer) for graphql_url_pattern in graphql_url_patterns
+        re_dynamicpath(graphql_url_pattern, gql_ws_consumer)
+        for graphql_url_pattern in graphql_url_patterns
     ]
-    
-    
+
     if additional_websocket_urlpatterns:
         websocket_urlpatterns.extend(additional_websocket_urlpatterns)
 
-    
-    
-    return CorsMiddleware(ProtocolTypeRouter(
-        {
-            "http": URLRouter(
-                cast(list[Any], http_urlpatterns)
-            ),
-            "websocket": URLRouter(cast(list[Any],websocket_urlpatterns))
-        }
-    ))
-
-
-
+    return CorsMiddleware(
+        ProtocolTypeRouter(
+            {
+                "http": URLRouter(cast(list[Any], http_urlpatterns)),
+                "websocket": URLRouter(cast(list[Any], websocket_urlpatterns)),
+            }
+        )
+    )

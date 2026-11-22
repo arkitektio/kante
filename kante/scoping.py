@@ -36,9 +36,9 @@ narrowed by the same step.
 """
 
 import warnings
-from functools import lru_cache, cache
-from typing import Any, cast
 from collections.abc import Callable, Collection
+from functools import cache
+from typing import Any, cast
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models as django_models
@@ -261,9 +261,7 @@ class OrganizationScoper:
         self, model: type[django_models.Model], info: Info, **kwargs: Any
     ) -> django_models.Model:
         """Async ``Model.objects.aget`` limited to the request's organization."""
-        return cast(
-            django_models.Model, await self.for_org(model, info).aget(**kwargs)
-        )
+        return cast(django_models.Model, await self.for_org(model, info).aget(**kwargs))
 
     def prescope(
         self,

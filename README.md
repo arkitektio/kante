@@ -30,6 +30,7 @@ from pydantic import BaseModel
 from strawberry.experimental import pydantic
 import strawberry_django
 
+
 class StrChannelModel(BaseModel):
     id: str
     name: str
@@ -50,11 +51,8 @@ class Me:
     id: str
 
 
-
 @strawberry.type
 class Query:
-    
-    
     @strawberry.field
     def me(self, info: Info, id: ID) -> Me:
         return Me(id=id)
@@ -62,38 +60,32 @@ class Query:
 
 @strawberry.type
 class Mutation:
-    
-    
     @strawberry.field
     def me(self, info: Info, id: ID) -> Me:
         return Me(id=id)
-    
-    
+
     @strawberry_django.field
     def send(self, info: Info, id: ID) -> str:
-        
+
         str_channel.broadcast(StrChannelModel(id=str(id), name="test"), groups=[ROOM])
         return str(id)
-    
-    
-    
+
+
 @strawberry.type
 class Subscription:
-    
-    
     @strawberry.subscription
     async def time(self, info: Info) -> AsyncGenerator[scalars.JSON, None]:
         context = require_ws(info)
         for i in range(2):
             yield context.connection_params
             await asyncio.sleep(1)
-            
-            
+
     @strawberry.subscription
     async def listen_str_channel(self, info: Info) -> AsyncGenerator[StrChannel, None]:
-        """ Listen to the str_channel and yield messages."""
+        """Listen to the str_channel and yield messages."""
         async for i in str_channel.listen(info, [ROOM]):
             yield cast(StrChannel, i)
+
 
 schema = kante.Schema(
     query=Query,
@@ -116,7 +108,6 @@ django_asgi_app = get_asgi_application()
 
 
 from .schema import schema  # noqa
-
 
 
 application = router(
@@ -197,6 +188,7 @@ from kante.scoping import aget_for_org
 
 file_channel = build_channel(CRUDSignal, "files")
 
+
 # signals.py -- broadcast after the transaction commits
 @receiver(post_save, sender=models.File)
 def on_file_saved(sender, instance, created, **kwargs):
@@ -205,12 +197,15 @@ def on_file_saved(sender, instance, created, **kwargs):
         groups=[file_channel.org_group(instance.organization)],
     )
 
+
 # subscriptions.py -- same helper builds the same room name
 async def files(self, info: Info) -> AsyncGenerator[FileEvent, None]:
     room = file_channel.org_group(info.context.request.organization)
     async for message in file_channel.listen(info, [room]):
         if message.create:
-            yield FileEvent(create=await aget_for_org(models.File, info, id=message.create))
+            yield FileEvent(
+                create=await aget_for_org(models.File, info, id=message.create)
+            )
 ```
 
 `listen()` takes `info` directly and narrows to the websocket context itself, so
@@ -245,25 +240,31 @@ Write the members; the merged type is derived from them.
 ```python
 from kante.unions import merged_input, union_member, union_member_types, unionElementOf
 
+
 class ScaleTransformModel(BaseModel):
     kind: Literal["SCALE"] = "SCALE"
     scale: list[float] = Field(description="The per-axis factors")
-    model_config = ConfigDict(extra="forbid")   # required: this is the strictness
+    model_config = ConfigDict(extra="forbid")  # required: this is the strictness
+
 
 @union_member("TransformInput", key="SCALE")
-@kante.pydantic_input(ScaleTransformModel, description="The fields a SCALE member reads")
+@kante.pydantic_input(
+    ScaleTransformModel, description="The fields a SCALE member reads"
+)
 class ScaleTransformInput:
     kind: TransformKind
     scale: list[float]
+
 
 @merged_input(members=[ScaleTransformInput, FieldTransformInput], noun="transformation")
 class TransformInput:
     """One authored edge, discriminated by `kind`."""
 
+
 schema = kante.Schema(
     query=Query,
-    types=union_member_types(TransformInput),   # nothing references these; omit them and
-    schema_directives=[unionElementOf],         # they vanish from the SDL silently
+    types=union_member_types(TransformInput),  # nothing references these; omit them and
+    schema_directives=[unionElementOf],  # they vanish from the SDL silently
 )
 ```
 
@@ -292,6 +293,7 @@ codegen degrades to a plain input with no warning.
 
 ```python
 from kante.testing import build_http_context
+
 
 @pytest.fixture
 def authenticated_context(db) -> HttpContext:

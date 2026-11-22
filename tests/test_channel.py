@@ -1,16 +1,17 @@
-""" Test that a WebSocket subscription receives a broadcast from an HTTP mutation."""
+"""Test that a WebSocket subscription receives a broadcast from an HTTP mutation."""
 
-import datetime
-import pytest
 import asyncio
-import msgpack
+import datetime
 from uuid import UUID, uuid4
-from pydantic import BaseModel
-from channels.layers import get_channel_layer
 
-from test_project.asgi import application
+import msgpack
+import pytest
+from channels.layers import get_channel_layer
+from pydantic import BaseModel
+
 from kante.channel import build_channel
 from kante.testing import GraphQLHttpTestClient, GraphQLWebSocketTestClient
+from test_project.asgi import application
 
 
 class RichChannelModel(BaseModel):
@@ -74,7 +75,7 @@ async def test_abroadcast_fans_out_to_all_groups() -> None:
 
 @pytest.mark.asyncio
 async def test_str_channel_subscription_receives_broadcast_from_http_mutation() -> None:
-    """ Test that a WebSocket subscription receives a broadcast from an HTTP mutation."""
+    """Test that a WebSocket subscription receives a broadcast from an HTTP mutation."""
     # Initialize both clients
     http_client = GraphQLHttpTestClient(application=application)
     ws_client = GraphQLWebSocketTestClient(application=application)
@@ -95,14 +96,14 @@ async def test_str_channel_subscription_receives_broadcast_from_http_mutation() 
             }
         }
         """,
-        max_messages=1
+        max_messages=1,
     )
 
     # Start listening in the background
     result = {}
 
     async def listen() -> None:
-        """ Listen for messages from the subscription."""
+        """Listen for messages from the subscription."""
         async for msg in subscription:
             result.update(msg["payload"]["data"]["listenStrChannel"])
             break
@@ -116,7 +117,7 @@ async def test_str_channel_subscription_receives_broadcast_from_http_mutation() 
             send(id: $id)
         }
         """,
-        variables={"id": test_id}
+        variables={"id": test_id},
     )
 
     # Wait for the subscription to receive the broadcast

@@ -1,10 +1,11 @@
 """The websocket GraphQL consumer, building kante's request context."""
 
-from strawberry.channels import GraphQLWSConsumer
-from strawberry.channels import ChannelsRequest
-from kante.context import Context, WsContext, UniversalRequest
-from strawberry.http.temporal_response import TemporalResponse
 import logging
+
+from strawberry.channels import ChannelsRequest, GraphQLWSConsumer
+from strawberry.http.temporal_response import TemporalResponse
+
+from kante.context import Context, UniversalRequest, WsContext
 
 logger = logging.getLogger(__name__)
 

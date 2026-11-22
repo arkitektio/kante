@@ -1,5 +1,6 @@
 # consumers.py
 import json
+
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 
@@ -20,7 +21,9 @@ class EchoConsumer(AsyncWebsocketConsumer):  # type: ignore[misc]
         """
         pass  # You can add cleanup logic here if needed.
 
-    async def receive(self, text_data: str | None = None, bytes_data: bytes | None = None) -> None:
+    async def receive(
+        self, text_data: str | None = None, bytes_data: bytes | None = None
+    ) -> None:
         """
         Called when a message is received from the WebSocket.
         """

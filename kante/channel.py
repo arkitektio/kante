@@ -21,12 +21,12 @@ re-fetch the place tenancy is enforced, rather than the room name alone.
 import asyncio
 import logging
 import warnings
+from collections.abc import AsyncGenerator, Sequence
 from typing import (
     Any,
     Generic,
     TypeVar,
 )
-from collections.abc import AsyncGenerator, Sequence
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -82,7 +82,9 @@ def _organization_id(org: int | str | Organization) -> str:
     return str(org.id)
 
 
-def org_group(prefix: str, org: int | str | Organization, sub: object | None = None) -> str:
+def org_group(
+    prefix: str, org: int | str | Organization, sub: object | None = None
+) -> str:
     """Build a tenant-scoped room name.
 
     ``org`` may be an :class:`~kante.context.Organization` or a bare id::
@@ -125,7 +127,9 @@ class Channel(Generic[T]):
             list(default_groups) if default_groups is not None else None
         )
 
-    def org_group(self, org: int | str | Organization, sub: object | None = None) -> str:
+    def org_group(
+        self, org: int | str | Organization, sub: object | None = None
+    ) -> str:
         """Build a tenant-scoped room name for this channel.
 
         Call this on **both** sides -- in the signal handler that broadcasts and

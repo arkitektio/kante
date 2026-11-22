@@ -193,7 +193,9 @@ def test_a_description_override_keeps_the_computed_prefix() -> None:
     sdl = str(build_schema())
     merged = sdl.split("input ThingInput {")[1].split("}")[0]
 
-    assert '"""(FIELD) The labels, said more briefly than the member says it"""' in merged
+    assert (
+        '"""(FIELD) The labels, said more briefly than the member says it"""' in merged
+    )
     # The member keeps its own, longer description.
     assert '"""Its labels"""' in sdl.split("input FieldThingInput")[1]
 
@@ -201,7 +203,7 @@ def test_a_description_override_keeps_the_computed_prefix() -> None:
 def test_the_merged_input_is_usable_as_an_annotation() -> None:
     """The decorated class stays a real class, so a resolver can annotate with it."""
     result = build_schema().execute_sync(
-        '{ describe(thing: { kind: SCALE, scale: [1.0, 2.0] }) }'
+        "{ describe(thing: { kind: SCALE, scale: [1.0, 2.0] }) }"
     )
     assert result.errors is None
     assert result.data == {"describe": "ScaleThingModel"}
@@ -214,7 +216,12 @@ def test_the_merged_input_is_usable_as_an_annotation() -> None:
 
 def _to_pydantic(**kwargs: object) -> BaseModel:
     """Build a merged input straight from kwargs and lower it."""
-    supplied: dict[str, object] = {"kind": None, "scale": None, "field": None, "labels": None}
+    supplied: dict[str, object] = {
+        "kind": None,
+        "scale": None,
+        "field": None,
+        "labels": None,
+    }
     supplied.update(kwargs)
     thing = ThingInput(**supplied)  # type: ignore[call-arg]
     return cast(BaseModel, thing.to_pydantic())  # type: ignore[attr-defined]
@@ -488,7 +495,11 @@ def test_a_matching_spec_alias_is_accepted() -> None:
     class Merged:
         """A merged input whose spec agrees."""
 
-    assert union_member_types(Merged) == [ScaleThingInput, FieldThingInput, NothingThingInput]
+    assert union_member_types(Merged) == [
+        ScaleThingInput,
+        FieldThingInput,
+        NothingThingInput,
+    ]
 
 
 def test_union_member_needs_a_strawberry_type() -> None:
@@ -525,7 +536,9 @@ def test_an_empty_union_is_refused() -> None:
 
 def test_a_member_merged_into_a_union_it_never_claimed_is_refused() -> None:
     """The directive names the union, so merging elsewhere would mislead codegen."""
-    with pytest.raises(TypeError, match="is a member of 'ThingInput', not of 'Elsewhere'"):
+    with pytest.raises(
+        TypeError, match="is a member of 'ThingInput', not of 'Elsewhere'"
+    ):
 
         @merged_input(members=[ScaleThingInput], noun="thing", name="Elsewhere")
         class _Merged:

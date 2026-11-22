@@ -2,12 +2,12 @@
 
 from asgiref.typing import (
     ASGI3Application,
-    Scope,
     ASGIReceiveCallable,
     ASGISendCallable,
     ASGISendEvent,
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
+    Scope,
 )
 
 # Hoisted to module scope so they are built once, not rebuilt on every request.
@@ -56,7 +56,8 @@ class CorsMiddleware:
             if event["type"] == "http.response.start":
                 # Drop any upstream CORS headers, then append ours once.
                 filtered_headers = [
-                    (k, v) for k, v in event.get("headers", [])
+                    (k, v)
+                    for k, v in event.get("headers", [])
                     if k.lower() not in _MANAGED_HEADER_NAMES
                 ]
                 event["headers"] = filtered_headers + _CORS_HEADERS

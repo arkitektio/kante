@@ -2,13 +2,14 @@
 
 import json
 from typing import Any, cast
+
 from channels.testing import ApplicationCommunicator
 
 
 class GraphQLHttpTestClient:
     """
     A simple test client for executing GraphQL queries via HTTP using Django Channels' ApplicationCommunicator.
-    
+
     Example:
         client = GraphQLHttpTestClient(application)
         result = await client.execute("{ __typename }")
@@ -18,7 +19,7 @@ class GraphQLHttpTestClient:
         self,
         application: Any,
         path: str = "/graphql",
-        headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None,
     ) -> None:
         """
         Initialize the test client.
@@ -37,7 +38,7 @@ class GraphQLHttpTestClient:
         query: str,
         variables: dict[str, Any] | None = None,
         operation_name: str | None = None,
-        timeout: int = 5
+        timeout: int = 5,
     ) -> dict[str, Any]:
         """
         Execute a GraphQL query or mutation via HTTP.
@@ -67,29 +68,38 @@ class GraphQLHttpTestClient:
         for key, value in self.headers.items():
             header_list.append((key.encode(), value.encode()))
 
-        communicator = ApplicationCommunicator(self.application, {
-            "type": "http",
-            "method": "POST",
-            "path": self.path,
-            "headers": header_list,
-            "body": encoded_body,
-        })
+        communicator = ApplicationCommunicator(
+            self.application,
+            {
+                "type": "http",
+                "method": "POST",
+                "path": self.path,
+                "headers": header_list,
+                "body": encoded_body,
+            },
+        )
 
-        await communicator.send_input({
-            "type": "http.request",
-            "body": encoded_body,
-        })
+        await communicator.send_input(
+            {
+                "type": "http.request",
+                "body": encoded_body,
+            }
+        )
 
         response_start = await communicator.receive_output(timeout=timeout)
-        assert response_start["type"] == "http.response.start", f"Unexpected type: {response_start}"
-        assert response_start["status"] == 200, f"Unexpected status: {response_start['status']}"
+        assert response_start["type"] == "http.response.start", (
+            f"Unexpected type: {response_start}"
+        )
+        assert response_start["status"] == 200, (
+            f"Unexpected status: {response_start['status']}"
+        )
 
         response_body = await communicator.receive_output(timeout=timeout)
-        assert response_body["type"] == "http.response.body", f"Unexpected type: {response_body}"
+        assert response_body["type"] == "http.response.body", (
+            f"Unexpected type: {response_body}"
+        )
 
         return cast(dict[str, Any], json.loads(response_body["body"]))
-
-
 
 
 class HttpGetTestClient:
@@ -101,21 +111,12 @@ class HttpGetTestClient:
         response_text = await client.get("/schema")
     """
 
-    def __init__(
-        self,
-        application: Any,
-        headers: dict[str, str] | None = None
-    ) -> None:
+    def __init__(self, application: Any, headers: dict[str, str] | None = None) -> None:
         """Bind the client to an ASGI application."""
         self.application = application
         self.headers = headers or {}
 
-    async def get(
-        self,
-        path: str,
-        accept: str = "text/plain",
-        timeout: int = 5
-    ) -> str:
+    async def get(self, path: str, accept: str = "text/plain", timeout: int = 5) -> str:
         """
         Perform a GET request to the given path.
 
@@ -134,21 +135,30 @@ class HttpGetTestClient:
         for k, v in self.headers.items():
             header_list.append((k.encode(), v.encode()))
 
-        communicator = ApplicationCommunicator(self.application, {
-            "type": "http",
-            "method": "GET",
-            "path": path,
-            "headers": header_list,
-            "body": b"",
-        })
+        communicator = ApplicationCommunicator(
+            self.application,
+            {
+                "type": "http",
+                "method": "GET",
+                "path": path,
+                "headers": header_list,
+                "body": b"",
+            },
+        )
 
         await communicator.send_input({"type": "http.request", "body": b""})
 
         response_start = await communicator.receive_output(timeout=timeout)
-        assert response_start["type"] == "http.response.start", f"Unexpected type: {response_start}"
-        assert response_start["status"] == 200, f"Unexpected status: {response_start['status']}"
+        assert response_start["type"] == "http.response.start", (
+            f"Unexpected type: {response_start}"
+        )
+        assert response_start["status"] == 200, (
+            f"Unexpected status: {response_start['status']}"
+        )
 
         response_body = await communicator.receive_output(timeout=timeout)
-        assert response_body["type"] == "http.response.body", f"Unexpected type: {response_body}"
+        assert response_body["type"] == "http.response.body", (
+            f"Unexpected type: {response_body}"
+        )
 
         return cast(str, response_body["body"].decode())

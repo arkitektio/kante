@@ -2,8 +2,10 @@
 
 # tests/test_asgi_communicator.py
 import json
+
 import pytest
 from channels.testing import ApplicationCommunicator
+
 from test_project.asgi import application  # your ASGI app
 
 

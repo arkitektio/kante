@@ -8,12 +8,12 @@ is what fills them in.
 """
 
 import datetime
-from strawberry.channels import ChannelsConsumer
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
-from collections.abc import Mapping
-from strawberry.http.temporal_response import TemporalResponse
 
+from strawberry.channels import ChannelsConsumer
+from strawberry.http.temporal_response import TemporalResponse
 
 # NOTE: every member of every protocol below is declared read-only
 # (``@property``) -- including ``Actor`` and ``Provenance``. Do not "simplify"

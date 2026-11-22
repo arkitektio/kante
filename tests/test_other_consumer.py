@@ -1,7 +1,9 @@
 # test_consumers.py
-import pytest
 import json
+
+import pytest
 from channels.testing import WebsocketCommunicator
+
 from test_project.asgi import application
 
 

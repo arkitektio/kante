@@ -101,7 +101,9 @@ class unionElementOf:  # the lowercase class name IS the SDL directive name
     discriminator: str = strawberry.field(
         description="The field of the merged input whose value selects a member"
     )
-    key: str = strawberry.field(description="The discriminator value that selects this member")
+    key: str = strawberry.field(
+        description="The discriminator value that selects this member"
+    )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -122,7 +124,8 @@ def union_memberships(
     and the one :func:`merged_input` can read back.
     """
     return [
-        unionElementOf(union=union, discriminator=discriminator, key=key) for union in unions
+        unionElementOf(union=union, discriminator=discriminator, key=key)
+        for union in unions
     ]
 
 
@@ -193,7 +196,11 @@ def parse_union_member(
     except PydanticValidationError as err:
         raise ValueError(
             _member_mismatch(
-                err, member=member, kind=str(kind), noun=noun, discriminator=discriminator
+                err,
+                member=member,
+                kind=str(kind),
+                noun=noun,
+                discriminator=discriminator,
             )
         ) from err
 
@@ -239,7 +246,9 @@ def union_member_types(cls: type[Any]) -> list[type]:
     """
     members = getattr(cls, _MEMBER_TYPES_ATTR, None)
     if members is None:
-        raise TypeError(f"'{cls.__name__}' is not a @merged_input, so it has no members.")
+        raise TypeError(
+            f"'{cls.__name__}' is not a @merged_input, so it has no members."
+        )
     return list(cast("Sequence[type]", members))
 
 
@@ -346,7 +355,9 @@ def merged_input(
         discriminator_description: str | None = None
 
         for member in members:
-            membership = cast("_Membership | None", getattr(member, _MEMBERSHIP_ATTR, None))
+            membership = cast(
+                "_Membership | None", getattr(member, _MEMBERSHIP_ATTR, None)
+            )
             if membership is None:
                 raise TypeError(
                     f"Union member '{member.__name__}' is not declared with @union_member, "
@@ -378,7 +389,8 @@ def merged_input(
             models[membership.key] = model
 
             definitions = {
-                field.python_name: field for field in member.__strawberry_definition__.fields
+                field.python_name: field
+                for field in member.__strawberry_definition__.fields
             }
             if discriminator not in definitions:
                 raise TypeError(
@@ -434,7 +446,9 @@ def merged_input(
             setattr(
                 cls,
                 field_name,
-                strawberry.field(default=None, description=prefix + body if body else prefix.strip()),
+                strawberry.field(
+                    default=None, description=prefix + body if body else prefix.strip()
+                ),
             )
 
         wire_fields = tuple(merged)

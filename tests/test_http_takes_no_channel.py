@@ -14,17 +14,27 @@ from test_project.asgi import application
 def test_the_alias_of_a_request_names_no_layer() -> None:
     assert KanteHTTPConsumer.channel_layer_alias == NO_CHANNEL_LAYER
     assert get_channel_layer(NO_CHANNEL_LAYER) is None
-    assert get_channel_layer() is not None, "the project still has its layer, for sockets and broadcasts"
+    assert get_channel_layer() is not None, (
+        "the project still has its layer, for sockets and broadcasts"
+    )
 
 
 @pytest.mark.asyncio
-async def test_a_request_never_receives_on_the_layer_and_still_broadcasts(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_a_request_never_receives_on_the_layer_and_still_broadcasts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     channels: list[str] = []
     received: list[str] = []
     sent: list[str] = []
-    new_channel, receive, group_send = InMemoryChannelLayer.new_channel, InMemoryChannelLayer.receive, InMemoryChannelLayer.group_send
+    new_channel, receive, group_send = (
+        InMemoryChannelLayer.new_channel,
+        InMemoryChannelLayer.receive,
+        InMemoryChannelLayer.group_send,
+    )
 
-    async def counted_new_channel(self: InMemoryChannelLayer, prefix: str = "specific.") -> str:
+    async def counted_new_channel(
+        self: InMemoryChannelLayer, prefix: str = "specific."
+    ) -> str:
         channel = await new_channel(self, prefix)
         channels.append(channel)
         return channel
@@ -33,7 +43,9 @@ async def test_a_request_never_receives_on_the_layer_and_still_broadcasts(monkey
         received.append(channel)
         return await receive(self, channel)
 
-    async def counted_group_send(self: InMemoryChannelLayer, group: str, message: dict) -> None:
+    async def counted_group_send(
+        self: InMemoryChannelLayer, group: str, message: dict
+    ) -> None:
         sent.append(group)
         await group_send(self, group, message)
 
@@ -48,5 +60,7 @@ async def test_a_request_never_receives_on_the_layer_and_still_broadcasts(monkey
     )
 
     assert answer["data"]["send"] == test_id
-    assert channels == [] and received == [], "the request took its turn at the layer's inbox"
+    assert channels == [] and received == [], (
+        "the request took its turn at the layer's inbox"
+    )
     assert sent, "what the mutation broadcasts still goes out"

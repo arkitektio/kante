@@ -1,13 +1,15 @@
 """Test the GraphQL WebSocket client."""
 
-from contextlib import contextmanager
 from collections.abc import Iterator
-from uuid import uuid4
+from contextlib import contextmanager
 from unittest.mock import patch
+from uuid import uuid4
+
 import pytest
 from django.db.models import QuerySet
-from test_app.models import TestModel
+
 from kante.testing import GraphQLHttpTestClient
+from test_app.models import TestModel
 from test_project.asgi import application
 
 
@@ -37,7 +39,9 @@ async def test_graphql_entitiy_query(db) -> None:
                 }
             }
             """,
-        variables={"representations": [{"__typename": "TestModel", "id": str(model.pk)}]},
+        variables={
+            "representations": [{"__typename": "TestModel", "id": str(model.pk)}]
+        },
     )
 
     # Validate that the broadcast was received correctly
@@ -53,9 +57,7 @@ async def test_entities_query_batches_reference_resolution(db) -> None:
 
     client = GraphQLHttpTestClient(application, path="/graphql/")
 
-    models = [
-        await TestModel.objects.acreate(name=f"Entity {i}") for i in range(5)
-    ]
+    models = [await TestModel.objects.acreate(name=f"Entity {i}") for i in range(5)]
 
     query = """
         query Entities($representations: [_Any!]!) {
@@ -67,9 +69,7 @@ async def test_entities_query_batches_reference_resolution(db) -> None:
             }
         }
         """
-    representations = [
-        {"__typename": "TestModel", "id": str(m.pk)} for m in models
-    ]
+    representations = [{"__typename": "TestModel", "id": str(m.pk)} for m in models]
 
     # Count the id lookups the reference resolver issues. With batching, all 5
     # representations collapse to one. (Spied on the queryset: the lookup starts
@@ -145,14 +145,18 @@ async def _entities(typename: str, ids: list, organization: str | None) -> dict:
 
 
 @pytest.mark.asyncio
-async def test_a_reference_into_another_organization_resolves_to_nothing(transactional_db) -> None:
+async def test_a_reference_into_another_organization_resolves_to_nothing(
+    transactional_db,
+) -> None:
     """`_entities` takes ids from the caller, so guessing one must not be enough."""
     mine = await _org("mine")
     theirs = await _org("theirs")
     own = await ScopedThing.objects.acreate(name="own", organization=mine)
     foreign = await ScopedThing.objects.acreate(name="foreign", organization=theirs)
 
-    answer = await _entities("ScopedThing", [own.pk, foreign.pk], organization=mine.slug)
+    answer = await _entities(
+        "ScopedThing", [own.pk, foreign.pk], organization=mine.slug
+    )
 
     assert "errors" not in answer, answer
     assert answer["data"]["entities"] == [{"id": str(own.pk), "name": "own"}, None]
@@ -165,25 +169,36 @@ async def test_the_other_organization_sees_the_other_half(transactional_db) -> N
     own = await ScopedThing.objects.acreate(name="own", organization=mine)
     foreign = await ScopedThing.objects.acreate(name="foreign", organization=theirs)
 
-    answer = await _entities("ScopedThing", [own.pk, foreign.pk], organization=theirs.slug)
+    answer = await _entities(
+        "ScopedThing", [own.pk, foreign.pk], organization=theirs.slug
+    )
 
-    assert answer["data"]["entities"] == [None, {"id": str(foreign.pk), "name": "foreign"}]
+    assert answer["data"]["entities"] == [
+        None,
+        {"id": str(foreign.pk), "name": "foreign"},
+    ]
 
 
 @pytest.mark.asyncio
-async def test_a_reference_goes_through_the_types_own_queryset(transactional_db) -> None:
+async def test_a_reference_goes_through_the_types_own_queryset(
+    transactional_db,
+) -> None:
     """What the type hides from its list and detail queries stays hidden here."""
     mine = await _org("mine")
     shown = await ScopedThing.objects.acreate(name="shown", organization=mine)
     hidden = await ScopedThing.objects.acreate(name="hidden", organization=mine)
 
-    answer = await _entities("ScopedThing", [shown.pk, hidden.pk], organization=mine.slug)
+    answer = await _entities(
+        "ScopedThing", [shown.pk, hidden.pk], organization=mine.slug
+    )
 
     assert answer["data"]["entities"] == [{"id": str(shown.pk), "name": "shown"}, None]
 
 
 @pytest.mark.asyncio
-async def test_a_scoped_reference_without_an_organization_fails(transactional_db) -> None:
+async def test_a_scoped_reference_without_an_organization_fails(
+    transactional_db,
+) -> None:
     mine = await _org("mine")
     thing = await ScopedThing.objects.acreate(name="own", organization=mine)
 
@@ -194,13 +209,17 @@ async def test_a_scoped_reference_without_an_organization_fails(transactional_db
 
 
 @pytest.mark.asyncio
-async def test_a_model_with_no_tenancy_story_is_refused_not_served(transactional_db) -> None:
+async def test_a_model_with_no_tenancy_story_is_refused_not_served(
+    transactional_db,
+) -> None:
     orphan = await OrphanThing.objects.acreate(name="orphan")
 
     answer = await _entities("OrphanThing", [orphan.pk], organization=None)
 
     assert "OrphanThing has no path to 'organization'" in str(answer["errors"])
-    assert not (answer["data"] or {}).get("entities") or answer["data"]["entities"] == [None]
+    assert not (answer["data"] or {}).get("entities") or answer["data"]["entities"] == [
+        None
+    ]
 
 
 @pytest.mark.asyncio
@@ -223,7 +242,9 @@ async def test_scoped_references_are_still_one_query(transactional_db) -> None:
     ]
 
     with _count_id_lookups() as lookups:
-        answer = await _entities("ScopedThing", [t.pk for t in things], organization=mine.slug)
+        answer = await _entities(
+            "ScopedThing", [t.pk for t in things], organization=mine.slug
+        )
 
     assert [e["name"] for e in answer["data"]["entities"]] == [t.name for t in things]
     assert len(lookups) == 1, f"expected one batched lookup, got {len(lookups)}"

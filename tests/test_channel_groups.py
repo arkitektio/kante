@@ -7,7 +7,7 @@ import pytest
 from channels.layers import get_channel_layer
 from django.db import transaction
 
-from kante.channel import CRUDSignal, Channel, build_channel, org_group
+from kante.channel import Channel, CRUDSignal, build_channel, org_group
 
 
 class _Org:

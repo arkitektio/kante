@@ -1,9 +1,10 @@
 """Typed aliases and structural types shared across kante."""
 
-from strawberry.types import Info as _Info
-from kante.context import Context, HttpContext, WsContext
 from typing import Any, Literal, Protocol, TypeGuard
 
+from strawberry.types import Info as _Info
+
+from kante.context import Context, HttpContext, WsContext
 
 Info = _Info[Context, Any]
 """``Info`` with kante's context attached.

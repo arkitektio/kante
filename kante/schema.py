@@ -1,8 +1,9 @@
 """kante's Schema: a federation schema with the Django optimizer installed."""
 
 import warnings
-from typing import TYPE_CHECKING, Any, cast
 from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Any, cast
+
 import strawberry
 from strawberry.extensions import SchemaExtension
 from strawberry.schema.config import StrawberryConfig
@@ -30,7 +31,8 @@ class Schema(strawberry.federation.Schema):
         ] = (),
         execution_context_class: "type[ExecutionContext] | None" = None,
         config: StrawberryConfig | None = None,
-        scalar_overrides: dict[object, type | ScalarWrapper | ScalarDefinition] | None = None,
+        scalar_overrides: dict[object, type | ScalarWrapper | ScalarDefinition]
+        | None = None,
         schema_directives: Iterable[object] = (),
         enable_optimizer: bool = True,
         enable_federation_2: bool = True,
@@ -47,8 +49,7 @@ class Schema(strawberry.federation.Schema):
         # are forwarded unchanged: warning about it is strawberry's job, not kante's.
         extensions = list(extensions)
         if enable_optimizer and not any(
-            ext is DjangoOptimizerExtension
-            or isinstance(ext, DjangoOptimizerExtension)
+            ext is DjangoOptimizerExtension or isinstance(ext, DjangoOptimizerExtension)
             for ext in extensions
         ):
             extensions.insert(0, DjangoOptimizerExtension)

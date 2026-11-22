@@ -1,14 +1,16 @@
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterator
-from kante.types import Info, require_ws
-import strawberry
-from strawberry.extensions import SchemaExtension
-from strawberry import ID, scalars
 from typing import cast
+
+import strawberry
+from pydantic import BaseModel
+from strawberry import ID, scalars
+from strawberry.extensions import SchemaExtension
+
+import kante
 from kante.channel import build_channel
 from kante.scoping import build_prescoped_queryset
-from pydantic import BaseModel
-import kante
+from kante.types import Info, require_ws
 from test_app import models
 
 
