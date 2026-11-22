@@ -23,7 +23,7 @@ class GraphQLWebSocketTestClient:
 
     def __init__(
         self,
-        application: Any,
+        application: object,
         path: str = "/graphql",
         protocol: str = "graphql-ws",
         connection_params: dict[str, Any] | None = None,

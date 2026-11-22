@@ -23,7 +23,6 @@ import logging
 import warnings
 from collections.abc import AsyncGenerator, Sequence
 from typing import (
-    Any,
     Generic,
     TypeVar,
 )
@@ -268,7 +267,7 @@ class Channel(Generic[T]):
                     continue  # Optionally re-raise or yield raw here
 
 
-def _as_ws_context(context: Info | WsContext | Any) -> WsContext:
+def _as_ws_context(context: object) -> WsContext:
     """Accept either an ``Info`` or a ``WsContext`` and return the ``WsContext``."""
     if isinstance(context, WsContext):
         return context

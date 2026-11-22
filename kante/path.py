@@ -8,7 +8,7 @@ from django.urls import URLPattern, path, re_path
 
 def dynamicpath(
     rel_path: str,
-    view: Any,
+    view: object,
     kwargs: dict[str, Any] | None = None,
     name: str | None = None,
 ) -> URLPattern:
@@ -25,8 +25,11 @@ def dynamicpath(
         URLPattern: The URL pattern with the script name prefixed.
     """
     if settings.MY_SCRIPT_NAME:
-        return path(  # type: ignore
-            settings.MY_SCRIPT_NAME.lstrip("/") + "/" + rel_path, view, kwargs, name
+        return path(
+            settings.MY_SCRIPT_NAME.lstrip("/") + "/" + rel_path,
+            view,  # type: ignore[arg-type] -- whatever path() takes: a view, include(), admin urls
+            kwargs,
+            name,
         )
     else:
         return path(rel_path, view, kwargs, name)  # type: ignore
@@ -34,7 +37,7 @@ def dynamicpath(
 
 def re_dynamicpath(
     regex_path: str,
-    view: Any,
+    view: object,
     kwargs: dict[str, Any] | None = None,
     name: str | None = None,
 ) -> URLPattern:
@@ -51,9 +54,9 @@ def re_dynamicpath(
         URLPattern: The URL pattern with the script name prefixed.
     """
     if settings.MY_SCRIPT_NAME:
-        return re_path(  # type: ignore
+        return re_path(
             rf"^{settings.MY_SCRIPT_NAME.lstrip('/')}/" + regex_path.lstrip("^"),
-            view,
+            view,  # type: ignore[arg-type] -- whatever re_path() takes: a view, include(), admin urls
             kwargs,
             name,
         )

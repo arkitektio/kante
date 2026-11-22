@@ -23,10 +23,13 @@ decorator keep the sentence a validator wrote and drop everything around it.
 """
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TypeVar
 
 from graphql import GraphQLError
+from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
+
+T = TypeVar("T")
 
 #: pydantic prefixes the message of a ``ValueError`` raised inside a validator with this.
 #: Stripped on the way out: the validator already wrote a full sentence, and the prefix
@@ -132,7 +135,7 @@ def describe_validation_error(err: PydanticValidationError) -> str:
     return f"`{path}`: {message}"
 
 
-def prose_errors[T](cls: type[T]) -> type[T]:
+def prose_errors(cls: type[T]) -> type[T]:
     """Make a strawberry input's ``to_pydantic`` raise prose instead of a pydantic report.
 
     Applied *above* ``@kante.pydantic_input`` on the inputs whose models carry
@@ -149,7 +152,7 @@ def prose_errors[T](cls: type[T]) -> type[T]:
     """
     original: Callable[..., Any] = cls.to_pydantic  # type: ignore[attr-defined]
 
-    def to_pydantic(self: Any, **kwargs: Any) -> Any:
+    def to_pydantic(self: object, **kwargs: Any) -> BaseModel:
         """Convert to the pydantic model, restating any failure as one sentence."""
         try:
             return original(self, **kwargs)

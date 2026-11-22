@@ -1,10 +1,11 @@
 """Tests for kante's public API surface: Info, errors, context protocols."""
 
 import warnings
-from typing import Any
+from typing import cast
 
 import pytest
 from graphql import GraphQLError
+from strawberry.channels import ChannelsConsumer
 
 import kante
 import kante.types
@@ -136,7 +137,7 @@ def test_build_request_is_a_universal_request() -> None:
 
 def test_build_ws_context_carries_the_consumer() -> None:
     """The websocket factory keeps the consumer the subscription listens on."""
-    consumer: Any = object()
+    consumer = cast(ChannelsConsumer, object())
     context = build_ws_context(consumer, connection_params={"token": "x"})
 
     assert context.type == "ws"

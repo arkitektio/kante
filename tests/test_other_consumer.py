@@ -8,7 +8,7 @@ from test_project.asgi import application
 
 
 @pytest.mark.asyncio
-async def test_echo_consumer(db) -> None:
+async def test_echo_consumer(db: None) -> None:
     communicator = WebsocketCommunicator(application, "ws/echo/")
     connected, _ = await communicator.connect()
     assert connected

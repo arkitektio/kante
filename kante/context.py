@@ -214,7 +214,7 @@ class Provenance(Protocol):
         """Whether ``service`` is one of the token's target audiences."""
         ...
 
-    def verify_args(self, args: Any) -> bool:
+    def verify_args(self, args: object) -> bool:
         """Whether ``args`` canonically hash to this token's ``ahs``."""
         ...
 
@@ -305,14 +305,14 @@ class UniversalRequest:
         """Set the provenance token in the request."""
         self._provenance = provenance
 
-    def get_extension(self, name: str) -> Any:
+    def get_extension(self, name: str) -> Any:  # noqa: ANN401 -- whatever was stored under name; callers know its type
         """Get an extension value from the request."""
 
         if name not in self._extensions:
             raise ValueError(f"Extension {name} is not set in the request.")
         return self._extensions.get(name)
 
-    def set_extension(self, name: str, value: Any) -> None:
+    def set_extension(self, name: str, value: object) -> None:
         """Set an extension value in the request."""
 
         self._extensions[name] = value

@@ -17,7 +17,7 @@ class GraphQLHttpTestClient:
 
     def __init__(
         self,
-        application: Any,
+        application: object,
         path: str = "/graphql",
         headers: dict[str, str] | None = None,
     ) -> None:
@@ -111,7 +111,9 @@ class HttpGetTestClient:
         response_text = await client.get("/schema")
     """
 
-    def __init__(self, application: Any, headers: dict[str, str] | None = None) -> None:
+    def __init__(
+        self, application: object, headers: dict[str, str] | None = None
+    ) -> None:
         """Bind the client to an ASGI application."""
         self.application = application
         self.headers = headers or {}

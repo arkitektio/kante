@@ -1,11 +1,16 @@
 """Tests for organization scoping."""
 
 import warnings
-from typing import Any
+from collections.abc import Iterable
+from typing import Any, cast
 
 import pytest
+from django.db.models import QuerySet
+from pytest_django.fixtures import SettingsWrapper
 
+from kante.context import HttpContext
 from kante.scoping import (
+    Narrow,
     OrganizationScoper,
     UnscopedModelError,
     for_org,
@@ -13,21 +18,41 @@ from kante.scoping import (
     organization_path,
 )
 from kante.testing import build_http_context
+from kante.types import Info
 from test_app import models
 
 
 class _FakeInfo:
     """The slice of ``Info`` that scoping actually reads."""
 
-    def __init__(self, context: Any, selected_fields: Any = ()) -> None:
+    def __init__(
+        self,
+        context: HttpContext,
+        selected_fields: Iterable[object] = (),
+        variable_values: dict[str, object] | None = None,
+        field_nodes: Iterable[object] = (),
+    ) -> None:
         self.context = context
         self.selected_fields = list(selected_fields)
-        self.variable_values: Any = {}
-        self.field_nodes: Any = []
+        self.variable_values: dict[str, object] = variable_values or {}
+        self.field_nodes: list[object] = list(field_nodes)
 
 
-def _info_for(org: Any, selected_fields: Any = ()) -> Any:
-    return _FakeInfo(build_http_context(organization=org), selected_fields)
+def _info_for(
+    org: models.Organization,
+    selected_fields: Iterable[object] = (),
+    *,
+    variable_values: dict[str, object] | None = None,
+    field_nodes: Iterable[object] = (),
+) -> Info:
+    """The fake, typed as the ``Info`` it stands in for."""
+    fake = _FakeInfo(
+        build_http_context(organization=org),
+        selected_fields,
+        variable_values,
+        field_nodes,
+    )
+    return cast(Info, fake)
 
 
 def test_direct_organization_path() -> None:
@@ -147,12 +172,12 @@ def test_prescope_limits_a_queryset() -> None:
 class _Arg:
     """A GraphQL argument AST node, cut down to what the scan reads."""
 
-    def __init__(self, name: str, fields: Any = ()) -> None:
+    def __init__(self, name: str, fields: Iterable[object] = ()) -> None:
         self.name = type("N", (), {"value": name})()
         self.value = type("V", (), {"fields": list(fields), "kind": "object_value"})()
 
 
-def _object_field(name: str, kind: str = "enum_value") -> Any:
+def _object_field(name: str, kind: str = "enum_value") -> object:
     return type(
         "F",
         (),
@@ -163,7 +188,7 @@ def _object_field(name: str, kind: str = "enum_value") -> Any:
     )()
 
 
-def _node(*arguments: Any) -> Any:
+def _node(*arguments: _Arg) -> object:
     return type("Node", (), {"arguments": list(arguments)})()
 
 
@@ -171,8 +196,7 @@ def _node(*arguments: Any) -> Any:
 def test_prescope_refuses_a_scope_passed_as_a_variable() -> None:
     """A scope passed as a variable has always been refused; it still is."""
     org = models.Organization.objects.create(slug="mine")
-    info = _info_for(org)
-    info.variable_values = {"filters": {"scope": "ALL"}}
+    info = _info_for(org, variable_values={"filters": {"scope": "ALL"}})
 
     with pytest.raises(NotImplementedError):
         OrganizationScoper().prescope(info, models.ScopedThing.objects.all())
@@ -183,8 +207,7 @@ def test_prescope_tolerates_a_null_filters_variable() -> None:
     """`filters: null` used to raise AttributeError inside the scope check."""
     org = models.Organization.objects.create(slug="mine")
     models.ScopedThing.objects.create(name="mine", organization=org)
-    info = _info_for(org)
-    info.variable_values = {"filters": None}
+    info = _info_for(org, variable_values={"filters": None})
 
     scoped = OrganizationScoper().prescope(info, models.ScopedThing.objects.all())
 
@@ -204,8 +227,9 @@ def test_prescope_warns_about_an_inline_scope_but_still_scopes() -> None:
     models.ScopedThing.objects.create(name="mine", organization=mine)
     models.ScopedThing.objects.create(name="theirs", organization=theirs)
 
-    info = _info_for(mine)
-    info.field_nodes = [_node(_Arg("filters", [_object_field("scope")]))]
+    info = _info_for(
+        mine, field_nodes=[_node(_Arg("filters", [_object_field("scope")]))]
+    )
 
     with pytest.warns(DeprecationWarning, match="scope"):
         scoped = OrganizationScoper().prescope(info, models.ScopedThing.objects.all())
@@ -217,8 +241,10 @@ def test_prescope_warns_about_an_inline_scope_but_still_scopes() -> None:
 def test_prescope_does_not_warn_without_a_scope() -> None:
     """The ordinary path stays quiet and does not walk the selection set."""
     org = models.Organization.objects.create(slug="mine")
-    info = _info_for(org)
-    info.field_nodes = [_node(_Arg("filters", [_object_field("name", "string_value")]))]
+    info = _info_for(
+        org,
+        field_nodes=[_node(_Arg("filters", [_object_field("name", "string_value")]))],
+    )
 
     with warnings.catch_warnings():
         warnings.simplefilter("error", DeprecationWarning)
@@ -234,10 +260,10 @@ class _RawInfo:
     shape scoping actually meets in production.
     """
 
-    def __init__(self, context: Any, field_nodes: Any) -> None:
+    def __init__(self, context: HttpContext, field_nodes: Iterable[object]) -> None:
         self.context = context
-        self.selected_fields: Any = []
-        self.variable_values: Any = {}
+        self.selected_fields: list[object] = []
+        self.variable_values: dict[str, object] = {}
         self._raw_info = type("Raw", (), {"field_nodes": list(field_nodes)})()
 
 
@@ -247,9 +273,12 @@ def test_inline_scope_is_read_off_the_raw_graphql_info() -> None:
     mine = models.Organization.objects.create(slug="mine")
     models.ScopedThing.objects.create(name="mine", organization=mine)
 
-    info = _RawInfo(
-        build_http_context(organization=mine),
-        [_node(_Arg("filters", [_object_field("scope")]))],
+    info = cast(
+        Info,
+        _RawInfo(
+            build_http_context(organization=mine),
+            [_node(_Arg("filters", [_object_field("scope")]))],
+        ),
     )
 
     with pytest.warns(DeprecationWarning, match="scope"):
@@ -271,10 +300,10 @@ def test_the_graphql_info_still_carries_field_nodes() -> None:
     assert "field_nodes" in GraphQLResolveInfo._fields
 
 
-def _only(name: str) -> Any:
+def _only(name: str) -> Narrow:
     """A narrowing step that keeps the rows called ``name``."""
 
-    def narrow(queryset: Any, info: Any) -> Any:
+    def narrow(queryset: QuerySet[Any], info: Info) -> QuerySet[Any]:
         return queryset.filter(name=name)
 
     return narrow
@@ -317,7 +346,7 @@ def test_narrow_applies_to_a_declared_unscoped_model() -> None:
 
 
 @pytest.mark.django_db
-def test_object_scope_setting_narrows_every_scoper(settings: Any) -> None:
+def test_object_scope_setting_narrows_every_scoper(settings: SettingsWrapper) -> None:
     """``KANTE_OBJECT_SCOPE`` narrows the module helpers and any scoper without its own step."""
     org = models.Organization.objects.create(slug="mine")
     models.ScopedThing.objects.create(name="shared", organization=org)

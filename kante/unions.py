@@ -71,7 +71,7 @@ import enum
 import types
 import typing
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, TypeVar, cast
+from typing import Any, Protocol, TypeVar, cast
 
 import strawberry
 from pydantic import BaseModel
@@ -79,6 +79,7 @@ from pydantic import ValidationError as PydanticValidationError
 from strawberry import UNSET
 from strawberry.schema_directive import Location
 from strawberry.types.base import StrawberryOptional
+from strawberry.types.field import FieldType
 
 from kante.errors import camel_field, describe_validation_error
 
@@ -252,7 +253,7 @@ def union_member_types(cls: type[Any]) -> list[type]:
     return list(cast("Sequence[type]", members))
 
 
-def _optional(annotation: Any) -> Any:
+def _optional(annotation: FieldType) -> FieldType:
     """``annotation`` widened to admit ``None``, idempotently.
 
     The annotation comes from the member's resolved strawberry field rather than from
@@ -266,14 +267,20 @@ def _optional(annotation: Any) -> Any:
     return StrawberryOptional(annotation)
 
 
-def _admits_none(annotation: Any) -> bool:
+def _admits_none(annotation: object) -> bool:
     """Whether ``annotation`` is already a plain typing union containing ``None``."""
     if typing.get_origin(annotation) not in (typing.Union, types.UnionType):
         return False
     return type(None) in typing.get_args(annotation)
 
 
-def _lower(value: Any) -> Any:
+class _Lowerable(Protocol):
+    """A strawberry input that converts to its pydantic model."""
+
+    def to_pydantic(self) -> BaseModel: ...
+
+
+def _lower(value: object) -> object:
     """A supplied field value as the member models want it.
 
     A nested union input is corrected to its own member model *first*, so a bad
@@ -281,7 +288,7 @@ def _lower(value: Any) -> Any:
     shapeless one about the derivation. Lists are lowered element by element.
     """
     if hasattr(value, "to_pydantic"):
-        return value.to_pydantic()
+        return cast(_Lowerable, value).to_pydantic()
     if isinstance(value, (list, tuple)):
         return [_lower(item) for item in value]
     return value
@@ -298,7 +305,7 @@ def _member_model(member: type[Any]) -> type[BaseModel]:
     return cast("type[BaseModel]", model)
 
 
-def _spec_models(spec: Any) -> set[type[BaseModel]]:
+def _spec_models(spec: object) -> set[type[BaseModel]]:
     """The member models of an ``Annotated[A | B, Field(discriminator=...)]`` alias."""
     args = typing.get_args(spec)
     union = args[0] if args else spec
@@ -313,7 +320,7 @@ def merged_input(
     discriminator: str = "kind",
     unknown_kind_error: str | None = None,
     descriptions: Mapping[str, str] | None = None,
-    spec: Any = None,
+    spec: object = None,
     name: str | None = None,
 ) -> Callable[[type[T]], type[T]]:
     """Fill an empty class with the merge of ``members``, as the union's wire type.
@@ -351,7 +358,7 @@ def merged_input(
         read_by: dict[str, list[str]] = {}
         declared_in: dict[str, str] = {}
         field_descriptions: dict[str, str] = {}
-        discriminator_annotation: Any = None
+        discriminator_annotation: FieldType | None = None
         discriminator_description: str | None = None
 
         for member in members:
@@ -453,7 +460,7 @@ def merged_input(
 
         wire_fields = tuple(merged)
 
-        def to_pydantic(self: Any) -> BaseModel:
+        def to_pydantic(self: object) -> BaseModel:
             """Match the merged wire fields to the member model `kind` selects, strictly."""
             data: dict[str, Any] = {}
             for field_name in wire_fields:

@@ -143,7 +143,7 @@ def _configured_narrow() -> Narrow | None:
     return cast(Narrow, import_string(path))
 
 
-def field_argument(info: Info, name: str) -> Any:
+def field_argument(info: Info, name: str) -> object:
     """Return the resolved value of an argument on the field being resolved.
 
     Sees arguments written inline in the query document as well as ones passed as

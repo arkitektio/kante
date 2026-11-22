@@ -2,6 +2,7 @@
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -14,7 +15,7 @@ from test_project.asgi import application
 
 
 @pytest.mark.asyncio
-async def test_graphql_entitiy_query(db) -> None:
+async def test_graphql_entitiy_query(db: None) -> None:
     """Test that the GraphQL subscription works with connection parameters."""
 
     client = GraphQLHttpTestClient(
@@ -52,7 +53,7 @@ async def test_graphql_entitiy_query(db) -> None:
 
 
 @pytest.mark.asyncio
-async def test_entities_query_batches_reference_resolution(db) -> None:
+async def test_entities_query_batches_reference_resolution(db: None) -> None:
     """Multiple representations must resolve in a single batched DB query."""
 
     client = GraphQLHttpTestClient(application, path="/graphql/")
@@ -92,11 +93,11 @@ async def test_entities_query_batches_reference_resolution(db) -> None:
 
 
 @contextmanager
-def _count_id_lookups() -> Iterator[list]:
+def _count_id_lookups() -> Iterator[list[object]]:
     real_filter = QuerySet.filter
-    lookups: list = []
+    lookups: list[object] = []
 
-    def spy(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003, ANN202
+    def spy(self: QuerySet[Any], *args: Any, **kwargs: Any) -> QuerySet[Any]:
         if "id__in" in kwargs:
             lookups.append(kwargs["id__in"])
         return real_filter(self, *args, **kwargs)
@@ -146,7 +147,7 @@ async def _entities(typename: str, ids: list, organization: str | None) -> dict:
 
 @pytest.mark.asyncio
 async def test_a_reference_into_another_organization_resolves_to_nothing(
-    transactional_db,
+    transactional_db: None,
 ) -> None:
     """`_entities` takes ids from the caller, so guessing one must not be enough."""
     mine = await _org("mine")
@@ -163,7 +164,9 @@ async def test_a_reference_into_another_organization_resolves_to_nothing(
 
 
 @pytest.mark.asyncio
-async def test_the_other_organization_sees_the_other_half(transactional_db) -> None:
+async def test_the_other_organization_sees_the_other_half(
+    transactional_db: None,
+) -> None:
     mine = await _org("mine")
     theirs = await _org("theirs")
     own = await ScopedThing.objects.acreate(name="own", organization=mine)
@@ -181,7 +184,7 @@ async def test_the_other_organization_sees_the_other_half(transactional_db) -> N
 
 @pytest.mark.asyncio
 async def test_a_reference_goes_through_the_types_own_queryset(
-    transactional_db,
+    transactional_db: None,
 ) -> None:
     """What the type hides from its list and detail queries stays hidden here."""
     mine = await _org("mine")
@@ -197,7 +200,7 @@ async def test_a_reference_goes_through_the_types_own_queryset(
 
 @pytest.mark.asyncio
 async def test_a_scoped_reference_without_an_organization_fails(
-    transactional_db,
+    transactional_db: None,
 ) -> None:
     mine = await _org("mine")
     thing = await ScopedThing.objects.acreate(name="own", organization=mine)
@@ -210,7 +213,7 @@ async def test_a_scoped_reference_without_an_organization_fails(
 
 @pytest.mark.asyncio
 async def test_a_model_with_no_tenancy_story_is_refused_not_served(
-    transactional_db,
+    transactional_db: None,
 ) -> None:
     orphan = await OrphanThing.objects.acreate(name="orphan")
 
@@ -223,7 +226,9 @@ async def test_a_model_with_no_tenancy_story_is_refused_not_served(
 
 
 @pytest.mark.asyncio
-async def test_without_the_setting_kantes_own_scoper_answers(transactional_db) -> None:
+async def test_without_the_setting_kantes_own_scoper_answers(
+    transactional_db: None,
+) -> None:
     """Which has no exceptions, so the test project's unscoped model is refused too."""
     model = await TestModel.objects.acreate(name="Test Entity")
 
@@ -234,7 +239,7 @@ async def test_without_the_setting_kantes_own_scoper_answers(transactional_db) -
 
 
 @pytest.mark.asyncio
-async def test_scoped_references_are_still_one_query(transactional_db) -> None:
+async def test_scoped_references_are_still_one_query(transactional_db: None) -> None:
     mine = await _org("mine")
     things = [
         await ScopedThing.objects.acreate(name=f"thing {i}", organization=mine)

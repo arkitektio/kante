@@ -1,8 +1,9 @@
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterator
-from typing import cast
+from typing import Any, cast
 
 import strawberry
+from django.db.models import QuerySet
 from pydantic import BaseModel
 from strawberry import ID, scalars
 from strawberry.extensions import SchemaExtension
@@ -41,7 +42,12 @@ class ScopedThing:
     name: str
 
     @classmethod
-    def get_queryset(cls, queryset, info, **kwargs):  # noqa: ANN001, ANN003, ANN206
+    def get_queryset(
+        cls,
+        queryset: QuerySet[models.ScopedThing],
+        info: Info,
+        **kwargs: Any,
+    ) -> QuerySet[models.ScopedThing]:
         # The shape every mikro type uses: prescope to the organization, then the
         # type's own rule. The reference loader has already scoped, so this filters
         # on the same organization twice -- which must be harmless.
@@ -106,7 +112,7 @@ class Subscription:
     @kante.subscription
     async def time(self, info: Info) -> AsyncGenerator[scalars.JSON, None]:
         context = require_ws(info)
-        for i in range(2):
+        for _i in range(2):
             yield cast(scalars.JSON, context.connection_params)
             await asyncio.sleep(1)
 

@@ -37,7 +37,7 @@ async def test_broadcast_payload_is_serializer_safe() -> None:
     await layer.group_add("default", listener)
 
     message = RichChannelModel(
-        id=uuid4(), created=datetime.datetime.now(), name="payload"
+        id=uuid4(), created=datetime.datetime.now(datetime.UTC), name="payload"
     )
     await channel.abroadcast(message, groups=["default"])
 
@@ -64,7 +64,7 @@ async def test_abroadcast_fans_out_to_all_groups() -> None:
         listeners[group] = name
 
     message = RichChannelModel(
-        id=uuid4(), created=datetime.datetime.now(), name="fanout"
+        id=uuid4(), created=datetime.datetime.now(datetime.UTC), name="fanout"
     )
     await channel.abroadcast(message, groups=groups)
 

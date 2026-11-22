@@ -10,7 +10,7 @@ from test_project.asgi import application  # your ASGI app
 
 
 @pytest.mark.asyncio
-async def test_typename_query(db) -> None:
+async def test_typename_query(db: None) -> None:
     """Test that a simple GraphQL query returns the expected __typename."""
     communicator = ApplicationCommunicator(
         application,
